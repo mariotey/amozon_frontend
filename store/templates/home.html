@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{% if search_query %}Search results for {{ search_query }}{% else %}Amozon — Almost everything, probably{% endif %}{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">THE INTERNET'S MOST ALMOST-TRUSTED MARKETPLACE</p>
+    <h1>Find your next<br><span>“wait, I bought that?”</span></h1>
+    <p>Useful things, unusual finds, and recommendations powered by actual math.</p>
+    <a class="button button-dark" href="#recommendations">Browse the good stuff <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-orbit orbit-one"></div>
+    <div class="hero-orbit orbit-two"></div>
+    <div class="hero-package">AMZ<br><span>✦</span></div>
+    <span class="float-star star-one">✦</span><span class="float-star star-two">✦</span>
+    <span class="hero-caption">Prime-ish delivery<br>at some point</span>
+  </div>
+  <span class="hero-disclaimer">A lovingly unlicensed shopping experience.</span>
+</section>
+
+{% if search_query %}
+<section class="section-block search-results-section" aria-labelledby="search-heading">
+  <div class="section-heading">
+    <div><p class="eyebrow">SEARCH THE AISLES</p><h2 id="search-heading">Results for “{{ search_query }}”</h2></div>
+    <span class="muted">{{ search_results|length }} matching item{{ search_results|length|pluralize }}</span>
+  </div>
+  {% if search_results %}
+    <div class="product-grid">
+      {% for product in search_results %}
+        {% include "partials/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><span aria-hidden="true">⌕</span><h3>No almost-perfect matches</h3><p>Try a shorter search or another category.</p></div>
+  {% endif %}
+</section>
+{% else %}
+<section class="section-block" id="recommendations" aria-labelledby="recommendations-heading">
+  <div class="section-heading">
+    <div><p class="eyebrow">PICKED FOR YOUR PARTICULAR VIBE</p><h2 id="recommendations-heading">Recommended for you</h2></div>
+    <span class="muted">A little algorithmic magic</span>
+  </div>
+  {% if recommendations_error %}
+    <div class="notice notice-warning" role="status">{{ recommendations_error }}</div>
+  {% elif recommendations %}
+    {% if recommendation_engine %}
+      <p class="recommendation-note">Suggested by {{ recommendation_engine }}{% if recommendation_reason %} · {{ recommendation_reason }}{% endif %}</p>
+    {% endif %}
+    <div class="product-grid">
+      {% for product in recommendations %}
+        {% include "partials/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><span aria-hidden="true">✦</span><h3>Nothing recommended just yet</h3><p>Pick a shopper profile above to see what the algorithm dreams up.</p></div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="section-block review-section" id="reviews" aria-labelledby="reviews-heading">
+  <div class="section-heading">
+    <div><p class="eyebrow">THE PEOPLE HAVE TYPED</p><h2 id="reviews-heading">Recent shopper reviews</h2></div>
+    <span class="muted">Browsing as {{ current_user_id|default:"guest" }}</span>
+  </div>
+  {% for review in current_recent_reviews %}
+    <article class="review-card">
+      <div class="review-product-mark" aria-hidden="true">A</div>
+      <div class="review-body">
+        <div class="review-meta">
+          <span class="review-stars" aria-label="{{ review.review_rating }} out of 5 stars">★ ★ ★ ★ ★</span>
+          <span>{{ review.review_rating }} / 5</span>
+          {% if review.verified_purchase %}<span class="verified-pill">Verified-ish purchase</span>{% endif %}
+        </div>
+        <a class="review-product-link" href="{% url 'product' review.parent_asin %}?user_id={{ current_user_id|urlencode }}">{{ review.parent_asin }}</a>
+        {% if review.review_title %}<h3>{{ review.review_title }}</h3>{% endif %}
+        <p>{{ review.review_text|default:"This shopper left a rating and kept the mystery alive."|truncatewords:45 }}</p>
+        <small>By {{ review.user_id }} · {{ review.review_datetime|date:"M j, Y" }}</small>
+      </div>
+    </article>
+  {% empty %}
+    <div class="empty-state compact-empty"><p>No reviews for this shopper yet.</p></div>
+  {% endfor %}
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Review pages">
+      {% if page_obj.has_previous %}<a href="?user_id={{ current_user_id|urlencode }}&page={{ page_obj.previous_page_number }}">← Newer</a>{% endif %}
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a href="?user_id={{ current_user_id|urlencode }}&page={{ page_obj.next_page_number }}">Older →</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+{% endblock %}
