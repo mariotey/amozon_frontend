@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
+
 from .api_client import (
     BackendAPIError,
     get_item,
@@ -87,97 +88,94 @@ class BackendAPIClientTests(SimpleTestCase):
         )
 
 
-class HomePageTests(SimpleTestCase):
-    @patch("store.views.get_popular_items", return_value=[{
-        "parent_asin": "popular-1",
-        "item_title": "A popular thing",
-        "main_category": "Useful stuff",
-        "is_free": True,
-    }])
-    @patch("store.views.get_recommendations", return_value={
-        "engine_used": "collaborative",
-        "items": [{
-            "parent_asin": "item-1",
-            "item_title": "A neat thing",
-            "main_category": "Useful stuff",
-            "is_free": True,
-        }],
-    })
-    @patch("store.views._load_users", return_value=[
-        {"user_id": "shopper-1"},
-    ])
-    def test_home_renders_api_recommendations_popular_items_and_user_id(
-        self, mock_users, mock_recommendations, mock_popular
-    ):
-        response = self.client.get("/")
+class InvalidBackendResponseTests(SimpleTestCase):
+    @patch("store.api_client.urlopen")
+    def test_empty_body_is_retryable_failure(self, mock_urlopen):
+        mock_urlopen.return_value.__enter__.return_value.read.return_value = b""
+        response = self.client.get("/sections/popular/")
+        self.assertEqual(response.status_code, 503)
 
+    @patch("store.views.get_popular_items", side_effect=[BackendAPIError("Sleeping"), []])
+    def test_retry_can_recover_without_cached_data(self, mock_items):
+        self.assertEqual(self.client.get("/sections/popular/").status_code, 503)
+        response = self.client.get("/sections/popular/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Recommended for shopper-1")
-        self.assertContains(response, "Hello,")
-        self.assertContains(response, "<option value=\"shopper-1\" selected>shopper-1</option>")
-        self.assertContains(response, "A neat thing")
-        self.assertContains(response, "Popular items")
-        self.assertContains(response, "A popular thing")
-        content = response.content
-        self.assertLess(
-            content.index(b'id="popular-items"'),
-            content.index(b'id="recommendations"'),
-        )
-        mock_recommendations.assert_called_once_with("shopper-1", limit=8)
+        self.assertIn("No popular items available.", response.json()["html"])
+        self.assertEqual(mock_items.call_count, 2)
 
-    @patch("store.views.get_popular_items", side_effect=BackendAPIError("Not found", 404))
-    @patch("store.views.get_recommendations", return_value={"items": []})
-    @patch("store.views._load_users", return_value=[
-        {"user_id": "shopper-1"},
-    ])
-    def test_home_surfaces_missing_popular_endpoint(
-        self, mock_users, mock_recommendations, mock_popular
-    ):
-        response = self.client.get("/")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Popular items could not be loaded from the Amozon API.")
+class LoadingPageTests(SimpleTestCase):
+    @patch("store.api_client.urlopen")
+    def test_pages_render_loading_sections_without_backend_requests(self, mock_urlopen):
+        for url, sections in [("/", ["popular", "recommendations"]),
+                              ("/product/item-1/?page=2&user_id=shopper-1", ["details", "reviews"])]:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, 'data-section="shoppers"')
+            for section in sections:
+                self.assertContains(response, f'data-section="{section}"')
+            self.assertContains(response, "loading-dots")
+            self.assertContains(response, "store/loading.js")
+            self.assertIn("no-store", response.headers["Cache-Control"])
+        mock_urlopen.assert_not_called()
 
     @patch("store.views.get_random_users", return_value=[{"user_id": "shopper-1"}])
-    def test_shoppers_are_loaded_without_profile_requests(self, mock_random):
-        from .views import _load_users
+    def test_shoppers_choose_default_user(self, mock_users):
+        response = self.client.get("/sections/shoppers/")
+        self.assertEqual(response.json()["user_id"], "shopper-1")
+        self.assertIn('selected>shopper-1', response.json()["html"])
 
-        self.assertEqual(_load_users(), [{"user_id": "shopper-1"}])
-        mock_random.assert_called_once_with(limit=5)
-
-    @patch("store.views.get_reviews_by_item", return_value={
-        "items": [{
-            "review_id": "review-1",
-            "user_id": "reviewer-1",
-            "review_title": "Works as promised",
-            "review_text": "A very useful item.",
-            "review_rating": 5,
-            "verified_purchase": True,
-            "review_date": "2025-01-01",
-        }],
-        "total_count": 1,
-        "page_count": 1,
-    })
-    @patch("store.views.get_item", return_value={
-        "parent_asin": "item-1",
-        "item_title": "A neat thing",
-        "main_category": "Useful stuff",
-        "price": -1,
-        "is_free": False,
-        "num_reviews": 1,
-    })
-    @patch("store.views._load_users", return_value=[
-        {"user_id": "shopper-1"},
-    ])
-    def test_product_page_uses_api_product_and_reviews(
-        self, mock_users, mock_item, mock_reviews
-    ):
-        response = self.client.get("/product/item-1/")
-
-        self.assertEqual(response.status_code, 200)
+    @patch("store.views.get_popular_items", return_value=[{"parent_asin": "item-1", "item_title": "A neat thing"}])
+    def test_popular_items_render_live_links(self, mock_items):
+        response = self.client.get("/sections/popular/?user_id=shopper-1")
         self.assertContains(response, "A neat thing")
-        self.assertContains(response, "Price not listed")
-        self.assertContains(response, "Customer reviews")
-        self.assertContains(response, "Works as promised")
-        self.assertContains(response, "A very useful item.")
-        mock_reviews.assert_called_once_with("item-1", page=1, page_size=10)
+        self.assertIn("/product/item-1/?user_id=shopper-1", response.json()["html"])
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+    @patch("store.views.get_popular_items", return_value=[])
+    def test_empty_popular_items_stop_loading(self, mock_items):
+        response = self.client.get("/sections/popular/")
+        self.assertIn("No popular items available.", response.json()["html"])
+        self.assertNotIn("loading-dots", response.json()["html"])
+
+    @patch("store.views.get_recommendations", return_value={"items": []})
+    def test_empty_recommendations(self, mock_items):
+        response = self.client.get("/sections/recommendations/?user_id=shopper-1")
+        self.assertIn("No recommendations available", response.json()["html"])
+        mock_items.assert_called_once_with("shopper-1", limit=8)
+
+    @patch("store.views.get_random_users", side_effect=BackendAPIError("Sleeping"))
+    def test_failed_shoppers_do_not_look_like_empty_recommendations(self, mock_users):
+        response = self.client.get("/sections/recommendations/")
+        self.assertEqual(response.status_code, 503)
+
+    @patch("store.views.get_popular_items", side_effect=BackendAPIError("Sleeping"))
+    def test_backend_failure_is_retryable(self, mock_items):
+        response = self.client.get("/sections/popular/")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"], "Unable to load right now.")
+
+    @patch("store.views.get_item", side_effect=BackendAPIError("Not found", 404))
+    def test_missing_product_is_a_final_empty_state(self, mock_item):
+        response = self.client.get("/sections/details/?item_id=missing")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Product not found", response.json()["html"])
+
+    @patch("store.views.get_reviews_by_item", return_value={"items": [], "page_count": 1, "total_count": 0})
+    def test_empty_reviews(self, mock_reviews):
+        response = self.client.get("/sections/reviews/?item_id=item-1")
+        self.assertIn("No reviews are available", response.json()["html"])
+
+    @patch("store.views.get_reviews_by_item", side_effect=[
+        {"items": [], "page_count": 2, "total_count": 11},
+        {"items": [{"review_title": "Useful", "review_rating": 5}], "page_count": 2, "total_count": 11},
+    ])
+    def test_reviews_clamp_page_and_preserve_pagination(self, mock_reviews):
+        response = self.client.get("/sections/reviews/?item_id=item-1&page=99&user_id=shopper-1")
+        self.assertIn("Useful", response.json()["html"])
+        self.assertIn("Page 2 of 2", response.json()["html"])
+        self.assertIn("user_id=shopper-1", response.json()["html"])
+        self.assertEqual(mock_reviews.call_args.kwargs["page"], 2)
+
+    def test_unknown_section(self):
+        self.assertEqual(self.client.get("/sections/unknown/").status_code, 404)

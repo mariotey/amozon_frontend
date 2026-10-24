@@ -20,7 +20,7 @@
 </section>
 <section class="section-block" id="recommendations" aria-labelledby="recommendations-heading">
   <div class="section-heading">
-    <div><p class="eyebrow">PICKED FOR YOUR PARTICULAR VIBE</p><h1 id="recommendations-heading">Recommended for {{ current_user_id|default:"you" }}</h1></div>
+    <div><p class="eyebrow">PICKED FOR YOUR PARTICULAR VIBE</p><h1 id="recommendations-heading">Recommended for you</h1></div>
   </div>
   {% if recommendations_error %}
     <div class="notice notice-warning" role="status">{{ recommendations_error }}</div>

@@ -1,0 +1,14 @@
+<section class="section-block" id="popular-items" aria-labelledby="popular-heading">
+  <div class="section-heading">
+    <div><p class="eyebrow">SHOPPER FAVORITES</p><h2 id="popular-heading">Popular items</h2></div>
+  </div>
+  {% if popular_items %}
+    <div class="product-grid popular-product-grid">
+      {% for product in popular_items %}
+        {% include "partials/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state compact-empty"><p>{{ popular_items_error|default:"No popular items available." }}</p></div>
+  {% endif %}
+</section>

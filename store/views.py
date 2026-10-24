@@ -1,3 +1,8 @@
+from django.http import JsonResponse, Http404
+from django.template.loader import render_to_string
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
+
 from django.shortcuts import render
 
 from .api_client import (
@@ -19,102 +24,75 @@ def _load_users():
     return get_random_users(limit=USER_LIMIT)
 
 
+@never_cache
+@require_GET
 def home(request):
-    context = {
-        "users": [],
-        "current_user_id": request.GET.get("user_id", ""),
-        "popular_items": [],
-    }
-
-    try:
-        context["users"] = _load_users()
-    except BackendAPIError:
-        context["api_error"] = "Shopper IDs could not be loaded from the Amozon API."
-
-    if not context["current_user_id"] and context["users"]:
-        context["current_user_id"] = context["users"][0]["user_id"]
-
-    try:
-        context["popular_items"] = get_popular_items(limit=5)
-    except BackendAPIError:
-        context["popular_items_error"] = (
-            "Popular items could not be loaded from the Amozon API."
-        )
-
-    current_user_id = context["current_user_id"]
-    if current_user_id:
-        try:
-            recommendation_response = get_recommendations(
-                current_user_id,
-                limit=RECOMMENDATION_LIMIT,
-            )
-            context["recommendations"] = recommendation_response["items"]
-            context["recommendation_engine"] = recommendation_response.get("engine_used")
-            context["recommendation_reason"] = recommendation_response.get("reason")
-            if not context["recommendations"]:
-                context["recommendations_empty_reason"] = recommendation_response.get("reason")
-        except BackendAPIError:
-            context["recommendations_error"] = (
-                "Recommendations are temporarily unavailable. Please try again soon."
-            )
-
-    return render(request, "home.html", context)
+    return render(request, "loading.html", {"loading": True, "current_user_id": request.GET.get("user_id", "")})
 
 
+@never_cache
+@require_GET
 def product(request, item_id):
-    current_user_id = request.GET.get("user_id", "")
-    context = {
-        "item": None,
-        "item_reviews": [],
-        "users": [],
-        "current_user_id": current_user_id,
-        "review_page_number": 1,
-        "review_total_pages": 1,
-        "review_has_previous": False,
-        "review_has_next": False,
-    }
+    return render(request, "loading.html", {
+        "loading": True, "current_user_id": request.GET.get("user_id", ""), "item_id": item_id,
+    })
 
+
+@never_cache
+@require_GET
+def section(request, name):
+    context = {"current_user_id": request.GET.get("user_id", "")}
     try:
-        context["users"] = _load_users()
+        if name == "shoppers":
+            context["users"] = _load_users()
+            if not context["current_user_id"] and context["users"]:
+                context["current_user_id"] = context["users"][0]["user_id"]
+            template = "partials/shoppers.html"
+        elif name == "popular":
+            context["popular_items"] = get_popular_items(limit=5)
+            template = "partials/popular.html"
+        elif name == "recommendations":
+            user_id = context["current_user_id"]
+            if not user_id:
+                users = _load_users()
+                user_id = users[0]["user_id"] if users else ""
+                context["current_user_id"] = user_id
+            payload = get_recommendations(user_id, limit=RECOMMENDATION_LIMIT) if user_id else {"items": []}
+            context.update({
+                "recommendations": payload["items"],
+                "recommendation_engine": payload.get("engine_used"),
+                "recommendations_empty_reason": payload.get("reason") or "No recommendations available for this shopper.",
+            })
+            template = "partials/recommendations.html"
+        elif name == "details":
+            try:
+                context["item"] = get_item(request.GET.get("item_id", ""))
+            except BackendAPIError as exc:
+                if exc.status_code != 404:
+                    raise
+            template = "partials/details.html"
+        elif name == "reviews":
+            try:
+                page = max(1, int(request.GET.get("page", "1")))
+            except ValueError:
+                page = 1
+            item_id = request.GET.get("item_id", "")
+            payload = get_reviews_by_item(item_id, page=page, page_size=REVIEW_PAGE_SIZE)
+            total_pages = max(1, payload["page_count"])
+            if page > total_pages:
+                page = total_pages
+                payload = get_reviews_by_item(item_id, page=page, page_size=REVIEW_PAGE_SIZE)
+            context.update({
+                "item_reviews": payload["items"], "review_page_number": page,
+                "review_total_pages": total_pages, "review_has_previous": page > 1,
+                "review_has_next": page < total_pages,
+            })
+            template = "partials/reviews.html"
+        else:
+            raise Http404
     except BackendAPIError:
-        context["api_error"] = "Shopper IDs could not be loaded from the Amozon API."
-
-    if not current_user_id and context["users"]:
-        current_user_id = context["users"][0]["user_id"]
-        context["current_user_id"] = current_user_id
-
-    try:
-        context["item"] = get_item(item_id)
-    except BackendAPIError as exc:
-        if exc.status_code != 404:
-            context["api_error"] = "Product details could not be loaded from the Amozon API."
-
-    try:
-        requested_page = max(1, int(request.GET.get("page", "1")))
-    except ValueError:
-        requested_page = 1
-    try:
-        reviews_response = get_reviews_by_item(
-            item_id,
-            page=requested_page,
-            page_size=REVIEW_PAGE_SIZE,
-        )
-        total_pages = max(1, reviews_response["page_count"])
-        current_page = min(requested_page, total_pages)
-        if current_page != requested_page:
-            reviews_response = get_reviews_by_item(
-                item_id,
-                page=current_page,
-                page_size=REVIEW_PAGE_SIZE,
-            )
-        context.update({
-            "item_reviews": reviews_response["items"],
-            "review_page_number": current_page,
-            "review_total_pages": total_pages,
-            "review_has_previous": current_page > 1,
-            "review_has_next": current_page < total_pages,
-        })
-    except BackendAPIError:
-        context["api_error"] = "Product reviews could not be loaded from the Amozon API."
-
-    return render(request, "product.html", context)
+        return JsonResponse({"error": "Unable to load right now."}, status=503)
+    return JsonResponse({
+        "html": render_to_string(template, context, request=request),
+        "user_id": context["current_user_id"],
+    })

@@ -15,20 +15,10 @@
         <span class="brand-name">amozon</span><span class="brand-smile" aria-hidden="true"></span>
       </a>
       <div class="account-area">
-        {% if users %}
-        <form class="user-picker account-picker" method="get" action="{% url 'home' %}">
-          <label for="user-picker">Hello,</label>
-          <select id="user-picker" name="user_id" aria-label="Select shopper" onchange="this.form.submit()">
-            {% for user in users %}
-              <option value="{{ user.user_id }}" {% if user.user_id|stringformat:"s" == current_user_id %}selected{% endif %}>{{ user.user_id }}</option>
-            {% endfor %}
-          </select>
-        </form>
+        {% if loading %}
+          <div data-section="shoppers" aria-live="polite" aria-busy="true">Loading shoppers<span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></div>
         {% else %}
-        <div class="user-picker account-picker">
-          <span>Hello,</span>
-          <strong>{{ current_user_id|default:"guest" }}</strong>
-        </div>
+          {% include "partials/shoppers.html" %}
         {% endif %}
       </div>
     </div>

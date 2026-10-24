@@ -149,3 +149,10 @@ button, input, select { font: inherit; }
   .review-card { gap: 10px; }.review-product-mark { flex-basis: 34px; width: 34px; height: 34px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; } }
+
+.loading-dots { display: inline-block; min-width: 1.5em; margin-left: .15em; }
+.loading-dots i { display: inline-block; font-style: normal; animation: loading-dot 1.2s infinite; }
+.loading-dots i:nth-child(2) { animation-delay: .2s; }
+.loading-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes loading-dot { 0%, 60%, 100% { opacity: .2; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .loading-dots i { animation: none; } }
