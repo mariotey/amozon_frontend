@@ -1,3 +1,5 @@
+"""Storefront routes: immediate page shells and browser-fetched sections."""
+
 from django.urls import path
 from . import views
 

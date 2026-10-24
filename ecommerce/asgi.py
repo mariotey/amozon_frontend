@@ -1,6 +1,8 @@
 """
 ASGI config for ecommerce project.
 
+Alternative entry point for ASGI servers; the documented deployment uses WSGI.
+
 It exposes the ASGI callable as a module-level variable named ``application``.
 
 For more information on this file, see

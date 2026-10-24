@@ -1,4 +1,6 @@
 """
+Project routing: delegate the site root to the storefront app.
+
 URL configuration for ecommerce project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:

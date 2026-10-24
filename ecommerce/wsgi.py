@@ -1,6 +1,8 @@
 """
 WSGI config for ecommerce project.
 
+Gunicorn imports ecommerce.wsgi:application for the documented deployment.
+
 It exposes the WSGI callable as a module-level variable named ``application``.
 
 For more information on this file, see

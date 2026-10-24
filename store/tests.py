@@ -1,3 +1,9 @@
+"""Backend-contract and section-rendering tests with mocked upstream requests.
+
+SimpleTestCase requires no database. These checks cover Python responses and
+HTML content; they do not execute browser animations or retry timers.
+"""
+
 import json
 from unittest.mock import patch
 
@@ -15,6 +21,7 @@ from .api_client import (
 
 
 class BackendAPIClientTests(SimpleTestCase):
+    """Check endpoint URLs, request options, and expected payload handling."""
     @override_settings(BACKEND_API_URL="https://api.example", BACKEND_API_TIMEOUT=5)
     @patch("store.api_client.urlopen")
     def test_fetches_recommendations(self, mock_urlopen):
@@ -89,6 +96,7 @@ class BackendAPIClientTests(SimpleTestCase):
 
 
 class InvalidBackendResponseTests(SimpleTestCase):
+    """Distinguish backend failures from valid empty results and allow recovery."""
     @patch("store.api_client.urlopen")
     def test_empty_body_is_retryable_failure(self, mock_urlopen):
         mock_urlopen.return_value.__enter__.return_value.read.return_value = b""
@@ -105,6 +113,7 @@ class InvalidBackendResponseTests(SimpleTestCase):
 
 
 class LoadingPageTests(SimpleTestCase):
+    """Verify immediate shells, live sections, empty states, and pagination."""
     @patch("store.api_client.urlopen")
     def test_pages_render_loading_sections_without_backend_requests(self, mock_urlopen):
         for url, sections in [("/", ["popular", "recommendations"]),
