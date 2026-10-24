@@ -1,7 +1,8 @@
-        {% if users %}
+        {% if users or current_user_id %}
         <form class="user-picker account-picker" method="get" action="{% url 'home' %}">
           <label for="user-picker">Hello,</label>
           <select id="user-picker" name="user_id" aria-label="Select shopper" onchange="this.form.submit()">
+            {% if selected_user_missing %}<option value="{{ current_user_id }}" selected>{{ current_user_id }}</option>{% endif %}
             {% for user in users %}
               <option value="{{ user.user_id }}" {% if user.user_id|stringformat:"s" == current_user_id %}selected{% endif %}>{{ user.user_id }}</option>
             {% endfor %}

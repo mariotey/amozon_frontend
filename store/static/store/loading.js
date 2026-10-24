@@ -1,11 +1,39 @@
 (() => {
   const root = document.getElementById('live-storefront');
   if (!root) return;
-  let userId = root.dataset.userId;
+  let userId = root.dataset.userId || '';
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const loaded = new Set();
+  const pending = new Map();
+  const shoppers = document.querySelector('[data-section="shoppers"]');
 
-  async function loadSection(element, deadline = Date.now() + 120000) {
+  function showRetry(element, retry, message = 'Unable to load right now.') {
+    element.setAttribute('aria-busy', 'false');
+    element.replaceChildren();
+    const text = document.createElement('p');
+    text.textContent = message;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button button-dark';
+    button.textContent = 'Try again';
+    button.addEventListener('click', retry);
+    element.append(text, button);
+  }
+
+  function loadSection(element) {
+    if (!element) return Promise.resolve(false);
+    if (loaded.has(element)) return Promise.resolve(true);
+    if (pending.has(element)) return pending.get(element);
+    const request = fetchSection(element).finally(() => pending.delete(element));
+    pending.set(element, request);
+    return request;
+  }
+
+  async function fetchSection(element) {
+    // Each section gets its own retry window, including after a long cold start.
+    const deadline = Date.now() + 120000;
     element.setAttribute('aria-busy', 'true');
+    element.innerHTML = 'Loading<span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>';
     while (Date.now() < deadline) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), Math.min(15000, deadline - Date.now()));
@@ -18,10 +46,15 @@
         if (!response.ok) throw new Error('Service unavailable');
         const payload = await response.json();
         if (typeof payload.html !== 'string') throw new Error('Invalid response');
+        if (element === shoppers && typeof payload.user_id !== 'string') throw new Error('Invalid shopper');
         element.innerHTML = payload.html;
         element.setAttribute('aria-busy', 'false');
-        if (element.dataset.section === 'shoppers') userId = payload.user_id;
-        return;
+        if (element === shoppers) {
+          userId = payload.user_id;
+          root.dataset.userId = userId;
+        }
+        loaded.add(element);
+        return true;
       } catch (error) {
         // The request itself wakes a sleeping backend; allow time before retrying.
       } finally {
@@ -29,31 +62,30 @@
       }
       await pause(Math.min(4000, Math.max(0, deadline - Date.now())));
     }
-    element.setAttribute('aria-busy', 'false');
-    element.replaceChildren();
-    const message = document.createElement('p');
-    message.textContent = 'Unable to load right now.';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'button button-dark';
-    button.textContent = 'Try again';
-    button.addEventListener('click', () => {
-      element.innerHTML = 'Loading<span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>';
-      loadSection(element).then(() => {
-        if (element.dataset.section === 'shoppers') refreshRecommendations();
-      });
+    showRetry(element, async () => {
+      if (await loadSection(element) && !root.dataset.itemId) loadHomeSections();
     });
-    element.append(message, button);
+    return false;
   }
 
-  function refreshRecommendations(deadline) {
+  async function loadHomeSections() {
+    const shoppersReady = await loadSection(shoppers);
+    // Popular products remain usable even if shopper selection is unavailable.
+    await loadSection(root.querySelector('[data-section="popular"]'));
     const recommendations = root.querySelector('[data-section="recommendations"]');
-    if (recommendations) return loadSection(recommendations, deadline);
+    if (!recommendations) return;
+    if (shoppersReady) {
+      await loadSection(recommendations);
+    } else {
+      showRetry(recommendations, loadHomeSections, 'Load shoppers to see recommendations.');
+    }
   }
 
-  const shoppers = document.querySelector('[data-section="shoppers"]');
-  // Recommendations wait for shopper selection; other sections load independently.
-  const deadline = Date.now() + 120000;
-  loadSection(shoppers, deadline).then(() => refreshRecommendations(deadline));
-  root.querySelectorAll('[data-section]:not([data-section="recommendations"])').forEach(element => loadSection(element, deadline));
+  if (root.dataset.itemId) {
+    // Direct product links and review pagination do not depend on shopper loading.
+    root.querySelectorAll('[data-section]').forEach(element => loadSection(element));
+    loadSection(shoppers);
+  } else {
+    loadHomeSections();
+  }
 })();

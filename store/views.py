@@ -66,6 +66,10 @@ def section(request, name):
             context["users"] = _load_users()
             if not context["current_user_id"] and context["users"]:
                 context["current_user_id"] = context["users"][0]["user_id"]
+            # A new random sample may omit the shopper preserved in a product link.
+            context["selected_user_missing"] = bool(context["current_user_id"]) and all(
+                user["user_id"] != context["current_user_id"] for user in context["users"]
+            )
             template = "partials/shoppers.html"
         elif name == "popular":
             context["popular_items"] = get_popular_items(limit=5)
@@ -73,7 +77,7 @@ def section(request, name):
         elif name == "recommendations":
             user_id = context["current_user_id"]
             # Direct section requests may arrive without a selected shopper.
-            if not user_id:
+            if not user_id and "user_id" not in request.GET:
                 users = _load_users()
                 user_id = users[0]["user_id"] if users else ""
                 context["current_user_id"] = user_id

@@ -134,6 +134,19 @@ class LoadingPageTests(SimpleTestCase):
         self.assertEqual(response.json()["user_id"], "shopper-1")
         self.assertIn('selected>shopper-1', response.json()["html"])
 
+    @patch("store.views.get_random_users", return_value=[{"user_id": "new-shopper"}])
+    def test_shoppers_preserve_selection_outside_new_random_sample(self, mock_users):
+        response = self.client.get("/sections/shoppers/?user_id=selected-shopper")
+        self.assertEqual(response.json()["user_id"], "selected-shopper")
+        self.assertIn('value="selected-shopper" selected', response.json()["html"])
+        self.assertIn('value="new-shopper"', response.json()["html"])
+        mock_users.assert_called_once_with(limit=5)
+
+    @patch("store.views.get_random_users", return_value=[])
+    def test_empty_sample_retains_explicit_shopper(self, mock_users):
+        response = self.client.get("/sections/shoppers/?user_id=selected-shopper")
+        self.assertIn('value="selected-shopper" selected', response.json()["html"])
+
     @patch("store.views.get_popular_items", return_value=[{"parent_asin": "item-1", "item_title": "A neat thing"}])
     def test_popular_items_render_live_links(self, mock_items):
         response = self.client.get("/sections/popular/?user_id=shopper-1")
@@ -152,6 +165,34 @@ class LoadingPageTests(SimpleTestCase):
         response = self.client.get("/sections/recommendations/?user_id=shopper-1")
         self.assertIn("No recommendations available", response.json()["html"])
         mock_items.assert_called_once_with("shopper-1", limit=8)
+
+    @patch("store.views.get_random_users")
+    @patch("store.views.get_recommendations")
+    def test_explicit_empty_shopper_does_not_fetch_a_different_random_sample(self, mock_items, mock_users):
+        response = self.client.get("/sections/recommendations/?user_id=")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("No recommendations available", response.json()["html"])
+        mock_users.assert_not_called()
+        mock_items.assert_not_called()
+
+    @override_settings(BACKEND_API_URL="https://api.example")
+    @patch("store.api_client.urlopen")
+    def test_product_sections_fetch_only_selected_product_endpoints(self, mock_urlopen):
+        upstream = mock_urlopen.return_value.__enter__.return_value
+        upstream.read.side_effect = [
+            b'{"parent_asin":"item-1","item_title":"Selected product"}',
+            b'{"items":[{"review_title":"Selected review","review_rating":5}],"total_count":11,"page_count":2}',
+        ]
+        details = self.client.get("/sections/details/?item_id=item-1&user_id=shopper-1")
+        reviews = self.client.get("/sections/reviews/?item_id=item-1&page=2&user_id=shopper-1")
+        self.assertIn("Selected product", details.json()["html"])
+        self.assertIn("Selected review", reviews.json()["html"])
+        self.assertIn("Page 2 of 2", reviews.json()["html"])
+        urls = [call.args[0].full_url for call in mock_urlopen.call_args_list]
+        self.assertEqual(urls, [
+            "https://api.example/api/v1/items/item-1",
+            "https://api.example/api/v1/items/item-1/reviews?page=2&page_size=10",
+        ])
 
     @patch("store.views.get_random_users", side_effect=BackendAPIError("Sleeping"))
     def test_failed_shoppers_do_not_look_like_empty_recommendations(self, mock_users):

@@ -12,7 +12,7 @@ Amozon is a demonstration shopping website that shows how personalized product r
 
 This repository contains the website and its presentation layer. A separate FastAPI service supplies shopper IDs, products, recommendations, and reviews. The recommendation engine and its underlying database are outside this repository.
 
-The page layout appears immediately, with moving dots while each section loads. Requests can wake the backend if its hosting service has put it to sleep. The website retries for up to two minutes before offering a **Try again** button. Successful responses with no results show an empty-state message instead.
+The page layout appears immediately, with moving dots while each section loads. The home page loads sample shoppers, then popular products, then recommendations for the selected shopper. Product pages request the selected product's details and reviews independently. Requests can wake the backend if its hosting service has put it to sleep. Each section retries for up to two minutes before offering a **Try again** button. Successful responses with no results show an empty-state message instead.
 
 ## Current scope
 

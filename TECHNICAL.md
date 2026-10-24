@@ -23,9 +23,9 @@ The app uses Django 6.0, plain JavaScript/CSS, WhiteNoise for static files, and 
 | `.gitignore` | Excludes secrets, environments, generated static files, and tool caches |
 | `README.md`, `TECHNICAL.md` | Management overview and developer/operations guide |
 
-`/` and `/product/<item_id>/` render immediately. JavaScript requests `/sections/<name>/`, which calls FastAPI and returns JSON containing rendered HTML. Sections load independently; recommendations wait for shopper loading. The active pages use `loading.html` and partials, rather than the older complete `home.html` and `product.html` templates.
+`/` and `/product/<item_id>/` render immediately. JavaScript requests `/sections/<name>/`, which calls FastAPI and returns JSON containing rendered HTML. On the home page, shoppers load first (selecting the first shopper unless a user ID is supplied), followed by popular products, then recommendations for the selected shopper. Popular products can still load after shopper failure; recommendations wait for successful shopper loading. On product pages, item details, reviews, and the shopper selector load independently. A selected shopper is retained in the dropdown even if a new random sample omits it. The active pages use `loading.html` and partials, rather than the older complete `home.html` and `product.html` templates.
 
-Backend calls have a 10-second timeout. Browser requests have a maximum 15-second timeout and retry after a delay of up to four seconds, within a shared initial two-minute window. Manual retries start a new window. There is no application data cache; page and section responses disable caching. Browser requests reach Django, so the browser does not call FastAPI directly.
+Backend calls have a 10-second timeout. Browser requests have a maximum 15-second timeout and retry after a delay of up to four seconds. Each section has its own two-minute retry window so later sections retain time to load after a backend cold start. Manual retries start a new window and resume dependent home sections without reloading successful sections. There is no application data cache; page and section responses disable caching. Browser requests reach Django, so the browser does not call FastAPI directly. Product sections use `/api/v1/items/<parent_asin>` and `/api/v1/items/<parent_asin>/reviews`; Supabase queries are the backend's responsibility.
 
 ### Templates and supporting data
 
@@ -89,10 +89,12 @@ The configured signing key is explicitly public and demo-only. Before introducin
 uv run python manage.py check
 uv run python manage.py test
 node --check store/static/store/loading.js
+node --test store/js_tests/loading.test.cjs
 ```
 
-The last command requires Node.js only for a JavaScript syntax check; Node.js is not needed to run the website. Tests mock the backend and do not verify a live deployment or browser animation.
+The Node.js commands check syntax and exercise request ordering, dependency recovery, retry windows, and product-page loading with controlled network responses. Node.js is not needed to run the website. Tests mock the backend and do not verify a live deployment or browser animation.
 
 - **Dots become a retry button:** check backend availability and Django logs. Requests may wake a sleeping service, but cannot repair a failed deployment.
+- **Shoppers fail while popular products work:** inspect `/api/v1/randomusers?n=5` and backend logs. The on-demand backend requires its `random_shoppers` Supabase function and permissions (documented in the backend's `sql/001_on_demand_serving.sql`). A 503 with `Supabase request failed` is an upstream failure; confirm the function setup and logs before assuming the cause. Shopper retries resume home-page loading.
 - **No results message:** the backend responded successfully with no matching data.
 - **Missing styles or JavaScript:** check `collectstatic` output and static asset responses. JavaScript is required to load live sections.
