@@ -11,46 +11,33 @@
 <body>
   <header class="site-header">
     <div class="header-main">
-      <a class="brand" href="{% url 'home' %}" aria-label="Amozon home">
+      <a class="brand" href="{% url 'home' %}?user_id={{ current_user_id|urlencode }}" aria-label="Amozon home">
         <span class="brand-name">amozon</span><span class="brand-smile" aria-hidden="true"></span>
       </a>
-      <div class="delivery-note">
-        <span class="delivery-icon" aria-hidden="true">⌖</span>
-        <span><small>Delivering to</small><strong>Somewhere nearby</strong></span>
+      <div class="account-area">
+        {% if users %}
+        <form class="user-picker account-picker" method="get" action="{% url 'home' %}">
+          <label for="user-picker">Hello,</label>
+          <select id="user-picker" name="user_id" aria-label="Select shopper" onchange="this.form.submit()">
+            {% for user in users %}
+              <option value="{{ user.user_id }}" {% if user.user_id|stringformat:"s" == current_user_id %}selected{% endif %}>{{ user.user_id }}</option>
+            {% endfor %}
+          </select>
+        </form>
+        {% else %}
+        <div class="user-picker account-picker">
+          <span>Hello,</span>
+          <strong>{{ current_user_id|default:"guest" }}</strong>
+        </div>
+        {% endif %}
       </div>
-      <form class="search-form" action="{% url 'home' %}" method="get" role="search">
-        <input type="hidden" name="user_id" value="{{ current_user_id }}">
-        <label class="visually-hidden" for="site-search">Search Amozon</label>
-        <input id="site-search" type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Search products, categories, and questionable bargains">
-        <button type="submit" aria-label="Search">⌕</button>
-      </form>
-      <a class="header-link account-link" href="#reviews"><small>Hello, shopper</small><strong>Your reviews</strong></a>
-      <a class="cart-link" href="#recommendations"><span aria-hidden="true">🛒</span><strong>Cart</strong></a>
     </div>
-    <nav class="subnav" aria-label="Main navigation">
-      <a href="#recommendations">☰ &nbsp; All the things</a>
-      <a href="#recommendations">Today's deals-ish</a>
-      <a href="#reviews">Reviews from real-ish people</a>
-      <span class="subnav-tag">A parody storefront. No boxes will arrive.</span>
-      {% if users %}
-      <form class="user-picker" method="get" action="{% url 'home' %}">
-        {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-        <label for="user-picker">Browsing as</label>
-        <select id="user-picker" name="user_id" onchange="this.form.submit()">
-          {% for user in users %}
-            <option value="{{ user.user_id }}" {% if user.user_id|stringformat:"s" == current_user_id %}selected{% endif %}>{{ user.user_id }}</option>
-          {% endfor %}
-        </select>
-      </form>
-      {% endif %}
-    </nav>
   </header>
 
   <main class="page-shell">
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
-    <a href="{% url 'home' %}">Back to the top-ish ↑</a>
     <p>Amozon is a parody demo storefront. It is not affiliated with Amazon, and purchases are entirely imaginary.</p>
   </footer>
 </body>

@@ -14,15 +14,13 @@
     <h1>{{ item.item_title|default:item.parent_asin }}</h1>
     <p class="detail-byline">Sold by <strong>{{ item.store|default:"Amozon Marketplace" }}</strong> · Item #{{ item.parent_asin }}</p>
     {% if item.avg_rating %}
-      <div class="detail-rating"><span>★★★★☆</span> {{ item.avg_rating|floatformat:1 }} out of 5 <a href="#product-reviews">{{ item.num_reviews|default:0 }} reviews</a></div>
+      <div class="detail-rating">{{ item.avg_rating|floatformat:1 }} out of 5 based on {{ item.num_reviews|default:0 }} reviews</div>
     {% endif %}
     <div class="detail-price">
       {% if item.is_free %}<strong>Free</strong>
-      {% elif item.price %}<span>$</span><strong>{{ item.price|floatformat:2 }}</strong>
+      {% elif item.price > 0 %}<span>$</span><strong>{{ item.price|floatformat:2 }}</strong>
       {% else %}<strong>Price not listed</strong>{% endif %}
     </div>
-    <p class="delivery-copy">Amozon delivery: estimated sometime between now and the heat death of the universe.</p>
-    <div class="detail-actions"><button class="button button-dark" type="button" disabled title="This parody demo does not process orders">Add to Cart (imaginary)</button><span>No checkout. No charge. Just vibes.</span></div>
     <dl class="detail-facts">
       {% if item.popularity_segment %}<div><dt>Popularity</dt><dd>{{ item.popularity_segment }}</dd></div>{% endif %}
       {% if item.quality_score %}<div><dt>Quality score</dt><dd>{{ item.quality_score|floatformat:2 }}</dd></div>{% endif %}
@@ -32,21 +30,30 @@
     {% if item.description %}<p class="detail-description">{{ item.description|truncatewords:100 }}</p>{% endif %}
   </div>
 </section>
+{% else %}
+<section class="empty-state not-found"><span aria-hidden="true">?</span><h1>Product details unavailable</h1><p>This item isn't in the local catalog, but its reviews may still be available below.</p><a class="button button-dark" href="{% url 'home' %}?user_id={{ current_user_id|urlencode }}">Back to recommendations</a></section>
+{% endif %}
 
 <section class="section-block detail-reviews" id="product-reviews" aria-labelledby="product-reviews-heading">
-  <div class="section-heading"><div><p class="eyebrow">UNPROMPTED OPINIONS</p><h2 id="product-reviews-heading">Customer reviews</h2></div><span class="muted">{{ item.num_reviews|default:0 }} total reviews</span></div>
+  <div class="section-heading">
+    <div><p class="eyebrow">WHAT SHOPPERS SAID</p><h2 id="product-reviews-heading">Customer reviews</h2></div>
+    {% if item %}<span class="muted">{{ item.num_reviews|default:0 }} total reviews</span>{% endif %}
+  </div>
   {% for review in item_reviews %}
     <article class="review-card">
       <div class="review-product-mark" aria-hidden="true">A</div>
       <div class="review-body">
-        <div class="review-meta"><span class="review-stars">★ ★ ★ ★ ★</span><span>{{ review.review_rating }} / 5</span></div>
+        <div class="review-meta">
+          <span>{{ review.review_rating }} / 5</span>
+          {% if review.verified_purchase %}<span class="verified-pill">Verified purchase</span>{% endif %}
+        </div>
         {% if review.review_title %}<h3>{{ review.review_title }}</h3>{% endif %}
-        <p>{{ review.review_text|default:"No written review, but the rating speaks in its own way."|truncatewords:60 }}</p>
-        <small>By {{ review.user_id }} · {{ review.review_datetime|date:"M j, Y" }}</small>
+        <p>{{ review.review_text|default:"No written review was provided."|truncatewords:60 }}</p>
+        <small>By {{ review.user_id }}{% if review.review_datetime %} · {{ review.review_datetime|date:"M j, Y" }}{% endif %}</small>
       </div>
     </article>
   {% empty %}
-    <div class="empty-state compact-empty"><p>No reviews yet. Be the first imaginary customer.</p></div>
+    <div class="empty-state compact-empty"><p>No reviews are available for this product yet.</p></div>
   {% endfor %}
   {% if page_obj.paginator.num_pages > 1 %}
     <nav class="pagination" aria-label="Review pages">
@@ -56,7 +63,4 @@
     </nav>
   {% endif %}
 </section>
-{% else %}
-<section class="empty-state not-found"><span aria-hidden="true">?</span><h1>That product wandered off</h1><p>We couldn't find that item in the Amozon catalog.</p><a class="button button-dark" href="{% url 'home' %}">Back to the storefront</a></section>
-{% endif %}
 {% endblock %}

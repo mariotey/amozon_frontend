@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 from ..models import User, Item, Review
 
 def get_users():
@@ -10,6 +8,15 @@ def get_sliced_users(start=0, end=10):
 
 def get_items():
     return list(Item.objects.all().values())
+
+
+def get_popular_items(limit=5):
+    return list(
+        Item.objects.filter(popularity_segment="popular")
+        .order_by("-num_reviews", "-avg_rating")
+        .values()[:limit]
+    )
+
 
 def get_reviews():
     return list(Review.objects.all().values())
@@ -22,16 +29,3 @@ def get_item(parent_asin):
 
 def get_reviews_by_item(parent_asin):
     return list(Review.objects.filter(parent_asin=parent_asin).order_by("-review_datetime").values())
-
-
-def search_items(query, limit=24):
-    return list(
-        Item.objects.filter(
-            Q(item_title__icontains=query)
-            | Q(main_category__icontains=query)
-            | Q(store__icontains=query)
-            | Q(parent_asin__icontains=query)
-        )
-        .order_by("-num_reviews")[:limit]
-        .values()
-    )

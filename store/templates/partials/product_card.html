@@ -8,16 +8,13 @@
     <p class="product-category">{{ product.main_category|default:"Amozon finds" }}</p>
     <a class="product-title" href="{% url 'product' product.parent_asin %}?user_id={{ current_user_id|urlencode }}">{{ product.item_title|default:product.parent_asin|truncatechars:70 }}</a>
     {% if product.avg_rating %}
-      <div class="product-rating"><span>★★★★<span class="rating-muted">★</span></span> <small>{{ product.avg_rating|floatformat:1 }}</small></div>
-    {% else %}
-      <div class="product-rating"><span>★★★★<span class="rating-muted">★</span></span> <small>Customer favorite-ish</small></div>
+      <div class="product-rating"><strong>{{ product.avg_rating|floatformat:1 }}</strong><small>/ 5 average</small></div>
     {% endif %}
     <div class="product-price">
       {% if product.is_free %}<strong>Free</strong>
-      {% elif product.price %}<span>$</span><strong>{{ product.price|floatformat:2 }}</strong>
+      {% elif product.price > 0 %}<span>$</span><strong>{{ product.price|floatformat:2 }}</strong>
       {% else %}<strong>See details</strong>{% endif %}
     </div>
     {% if product.num_reviews %}<small class="review-count">{{ product.num_reviews }} reviews in the database</small>{% endif %}
-    <a class="button button-small" href="{% url 'product' product.parent_asin %}?user_id={{ current_user_id|urlencode }}">See the details</a>
   </div>
 </article>
