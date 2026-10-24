@@ -1,6 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Recommendations for {{ current_user_id }} — Amozon{% endblock %}
+{% block title %}Recommendations for {{ current_user_id|default:"you" }} — Amozon{% endblock %}
 {% block content %}
+{% if api_error %}
+  <div class="notice notice-warning" role="status">{{ api_error }}</div>
+{% endif %}
+<section class="section-block" id="popular-items" aria-labelledby="popular-heading">
+  <div class="section-heading">
+    <div><p class="eyebrow">SHOPPER FAVORITES</p><h2 id="popular-heading">Popular items</h2></div>
+  </div>
+  {% if popular_items %}
+    <div class="product-grid popular-product-grid">
+      {% for product in popular_items %}
+        {% include "partials/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state compact-empty"><p>{{ popular_items_error|default:"Popular items aren't available right now." }}</p></div>
+  {% endif %}
+</section>
 <section class="section-block" id="recommendations" aria-labelledby="recommendations-heading">
   <div class="section-heading">
     <div><p class="eyebrow">PICKED FOR YOUR PARTICULAR VIBE</p><h1 id="recommendations-heading">Recommended for {{ current_user_id|default:"you" }}</h1></div>
@@ -17,21 +34,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="empty-state"><span aria-hidden="true">✦</span><h2>No recommendations available</h2><p>Try selecting another shopper profile.</p></div>
-  {% endif %}
-</section>
-<section class="section-block" id="popular-items" aria-labelledby="popular-heading">
-  <div class="section-heading">
-    <div><p class="eyebrow">SHOPPER FAVORITES</p><h2 id="popular-heading">Popular items</h2></div>
-  </div>
-  {% if popular_items %}
-    <div class="product-grid popular-product-grid">
-      {% for product in popular_items %}
-        {% include "partials/product_card.html" with product=product %}
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="empty-state compact-empty"><p>Popular items aren't available right now.</p></div>
+    <div class="empty-state"><span aria-hidden="true">✦</span><h2>No recommendations available</h2><p>{{ recommendations_empty_reason|default:"Try selecting another shopper ID." }}</p></div>
   {% endif %}
 </section>
 {% endblock %}

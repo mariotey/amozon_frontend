@@ -2,6 +2,9 @@
 {% block title %}{% if item %}{{ item.item_title|default:item.parent_asin }}{% else %}Product not found{% endif %} — Amozon{% endblock %}
 {% block content %}
 <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="{% url 'home' %}?user_id={{ current_user_id|urlencode }}">Home</a><span>/</span><span>Product details</span></nav>
+{% if api_error %}
+  <div class="notice notice-warning" role="status">{{ api_error }}</div>
+{% endif %}
 {% if item %}
 <section class="product-detail">
   <div class="detail-art" aria-hidden="true">
@@ -31,7 +34,7 @@
   </div>
 </section>
 {% else %}
-<section class="empty-state not-found"><span aria-hidden="true">?</span><h1>Product details unavailable</h1><p>This item isn't in the local catalog, but its reviews may still be available below.</p><a class="button button-dark" href="{% url 'home' %}?user_id={{ current_user_id|urlencode }}">Back to recommendations</a></section>
+<section class="empty-state not-found"><span aria-hidden="true">?</span><h1>Product details unavailable</h1><p>This item could not be found through the Amozon API, but its reviews may still be available below.</p><a class="button button-dark" href="{% url 'home' %}?user_id={{ current_user_id|urlencode }}">Back to recommendations</a></section>
 {% endif %}
 
 <section class="section-block detail-reviews" id="product-reviews" aria-labelledby="product-reviews-heading">
@@ -49,17 +52,17 @@
         </div>
         {% if review.review_title %}<h3>{{ review.review_title }}</h3>{% endif %}
         <p>{{ review.review_text|default:"No written review was provided."|truncatewords:60 }}</p>
-        <small>By {{ review.user_id }}{% if review.review_datetime %} · {{ review.review_datetime|date:"M j, Y" }}{% endif %}</small>
+        <small>By {{ review.user_id }}{% if review.review_date %} · {{ review.review_date }}{% endif %}</small>
       </div>
     </article>
   {% empty %}
     <div class="empty-state compact-empty"><p>No reviews are available for this product yet.</p></div>
   {% endfor %}
-  {% if page_obj.paginator.num_pages > 1 %}
+  {% if review_total_pages > 1 %}
     <nav class="pagination" aria-label="Review pages">
-      {% if page_obj.has_previous %}<a href="?user_id={{ current_user_id|urlencode }}&page={{ page_obj.previous_page_number }}#product-reviews">← Previous</a>{% endif %}
-      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}<a href="?user_id={{ current_user_id|urlencode }}&page={{ page_obj.next_page_number }}#product-reviews">Next →</a>{% endif %}
+      {% if review_has_previous %}<a href="?user_id={{ current_user_id|urlencode }}&page={{ review_page_number|add:'-1' }}#product-reviews">← Previous</a>{% endif %}
+      <span>Page {{ review_page_number }} of {{ review_total_pages }}</span>
+      {% if review_has_next %}<a href="?user_id={{ current_user_id|urlencode }}&page={{ review_page_number|add:'1' }}#product-reviews">Next →</a>{% endif %}
     </nav>
   {% endif %}
 </section>
