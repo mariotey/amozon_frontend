@@ -41,18 +41,27 @@ function createAPI(baseURL, fetcher = globalThis.fetch) {
     try { return await response.json(); }
     catch { throw new APIError('The service returned an invalid response.'); }
   }
+  async function popular(signal) {
+    return validate(await get('/api/v1/popular_items', {limit: 5}, signal), value => list(value, product)).slice(0, 5);
+  }
   return {
     async shoppers(signal) {
       return validate(await get('/api/v1/randomusers', {n: 5}, signal),
         value => list(value, row => record(row) && typeof row.user_id === 'string' && row.user_id.length > 0));
     },
-    async popular(signal) {
-      return validate(await get('/api/v1/popular_items', {limit: 5}, signal), value => list(value, product)).slice(0, 5);
+    popular,
+    async history(userId, page, signal) {
+      return validate(await get(`/api/v1/users/${encodeURIComponent(userId)}/history`,
+        {verified_only: true, page, page_size: 5}, signal),
+        data => record(data) && list(data.items, row => record(row) && (row.item == null || product(row.item)))
+          && Number.isInteger(data.total_count) && data.total_count >= 0
+          && Number.isInteger(data.page_count) && data.page_count >= 0);
     },
     async recommendations(userId, signal) {
       const value = validate(await get(`/api/v1/users/${encodeURIComponent(userId)}/recommendations`, {n: 8}, signal),
         data => record(data) && (data.items == null || list(data.items, product)));
-      return {...value, items: value.items ?? []};
+      if (value.items?.length) return value;
+      return {...value, items: await popular(signal), engine_used: 'popular'};
     },
     async item(asin, signal) {
       return validate(await get(`/api/v1/items/${encodeURIComponent(asin)}`, {}, signal), product);
@@ -110,12 +119,21 @@ async function withRetry(operation, {
   throw lastError || new APIError('The service is taking longer than expected.');
 }
 
+document.addEventListener('error', event => {
+  if (event.target instanceof HTMLImageElement && event.target.classList.contains('product-image')) {
+    event.target.remove();
+  }
+}, true);
+
 const view = (() => {
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[char]);
 const e = escapeHTML;
 const text = (value, fallback) => value == null || value === '' ? fallback : String(value);
+const productTitle = item => item.item_title
+  ? String(item.item_title).replace(/(^|[\s-])\p{L}/gu, value => value.toUpperCase())
+  : item.parent_asin;
 const trim = (value, length) => value.length > length ? `${value.slice(0, length - 1)}…` : value;
 const words = (value, limit) => String(value).split(/\s+/).slice(0, limit).join(' ');
 const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -155,23 +173,48 @@ function price(item, details = false) {
   if (number(item.price) > 0) return `<span>$</span><strong>${number(item.price).toFixed(2)}</strong>`;
   return `<strong>${details ? 'Price not listed' : 'See details'}</strong>`;
 }
+function productImage(item, details = false) {
+  const candidates = [
+    record(item.image_url) ? item.image_url.large : item.image_url,
+    item.item_images?.large,
+  ].flat();
+  const source = candidates.find(value => {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    try { return ['https:', 'http:'].includes(new URL(value).protocol); }
+    catch { return false; }
+  });
+  if (!source) return '';
+  const title = productTitle(item);
+  return `<img class="product-image" src="${e(source)}" alt="${e(title)}"${details ? '' : ' loading="lazy"'} decoding="async">`;
+}
 function productCard(item, userId) {
   const category = text(item.main_category, 'Amozon finds');
-  const title = text(item.item_title, item.parent_asin);
+  const title = productTitle(item);
   const href = e(productURL(item.parent_asin, userId));
-  return `<article class="product-card"><a class="product-art" href="${href}" data-product="${e(item.parent_asin)}" aria-label="${e(`View ${title}`)}"><span class="art-spark art-spark-one">✦</span><span class="art-spark art-spark-two">✧</span><span class="art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span class="art-category">${e(category)}</span></a><div class="product-card-content"><p class="product-category">${e(category)}</p><a class="product-title" data-product="${e(item.parent_asin)}" href="${href}">${e(trim(title, 70))}</a>${number(item.avg_rating) > 0 ? `<div class="product-rating"><strong>${number(item.avg_rating).toFixed(1)}</strong><small>/ 5 average</small></div>` : ''}<div class="product-price">${price(item)}</div>${number(item.num_reviews) > 0 ? `<small class="review-count">${number(item.num_reviews)} reviews in the database</small>` : ''}</div></article>`;
+  return `<article class="product-card"><a class="product-art" href="${href}" data-product="${e(item.parent_asin)}" aria-label="${e(`View ${title}`)}">${productImage(item)}<span class="art-spark art-spark-one">✦</span><span class="art-spark art-spark-two">✧</span><span class="art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span class="art-category">${e(category)}</span></a><div class="product-card-content"><p class="product-category">${e(category)}</p><a class="product-title" data-product="${e(item.parent_asin)}" href="${href}">${e(trim(title, 70))}</a>${number(item.avg_rating) > 0 ? `<div class="product-rating"><strong>${number(item.avg_rating).toFixed(1)}</strong><small>/ 5 average</small></div>` : ''}<div class="product-price">${price(item)}</div>${number(item.num_reviews) > 0 ? `<small class="review-count">${number(item.num_reviews)} reviews in the database</small>` : ''}</div></article>`;
 }
 function popular(items, userId) {
   return items.length ? `<div class="product-grid popular-product-grid">${items.map(item => productCard(item, userId)).join('')}</div>` : '<div class="empty-state compact-empty"><p>No popular items available.</p></div>';
 }
+function history(payload, page, userId) {
+  if (!payload.items.length) return '<div class="empty-state compact-empty"><p>No purchase history available for this shopper.</p></div>';
+  const totalPages = Math.max(1, payload.page_count);
+  return `<p class="recommendation-note">Products from your verified purchase reviews, newest reviews first.</p><div class="product-grid history-product-grid">${payload.items.map(row => row.item
+    ? productCard(row.item, userId)
+    : `<article class="product-card"><div class="empty-state compact-empty"><p>Product details unavailable</p><small>Item #${e(row.parent_asin)}</small></div></article>`).join('')}</div>${totalPages > 1
+    ? `<nav class="pagination" aria-label="Purchase history pages">${page > 1 ? `<button type="button" data-history-page="${page - 1}">Previous</button>` : ''}<span>Page ${page} of ${totalPages}</span>${page < totalPages ? `<button type="button" data-history-page="${page + 1}">Next</button>` : ''}</nav>` : ''}`;
+}
 function recommendations(payload, userId) {
+  if (payload.engine_used === 'popular') {
+    return `${payload.items.length ? '<p class="recommendation-note">Showing popular products because personalized recommendations are unavailable.</p>' : ''}${popular(payload.items, userId)}`;
+  }
   if (!payload.items.length) return `<div class="empty-state"><span aria-hidden="true">✦</span><h3>No recommendations available</h3><p>${e(text(payload.reason, 'Try selecting another shopper ID.'))}</p></div>`;
   return `${payload.engine_used ? `<p class="recommendation-note">Selected using ${e(payload.engine_used)} recommendations.</p>` : ''}<div class="product-grid">${payload.items.map(item => productCard(item, userId)).join('')}</div>`;
 }
 function details(item) {
   const category = text(item.main_category, 'Amozon finds');
   const facts = [['Popularity', item.popularity_segment], ['Quality score', item.quality_score == null ? null : number(item.quality_score).toFixed(2)], ['Verified reviews', item.num_verified_reviews], ['Price bucket', item.price_bucket]];
-  return `<section class="product-detail"><div class="detail-art" aria-hidden="true"><span class="detail-art-spark">✦</span><span class="detail-art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span>${e(category)}</span></div><div class="detail-copy"><p class="eyebrow">${e(category)}</p><h1>${e(text(item.item_title, item.parent_asin))}</h1><p class="detail-byline">Sold by <strong>${e(text(item.store, 'Amozon Marketplace'))}</strong> · Item #${e(item.parent_asin)}</p>${number(item.avg_rating) > 0 ? `<div class="detail-rating">${number(item.avg_rating).toFixed(1)} out of 5 based on ${number(item.num_reviews)} reviews</div>` : ''}<div class="detail-price">${price(item, true)}</div><dl class="detail-facts">${facts.filter(([, value]) => value != null && value !== '').map(([label, value]) => `<div><dt>${label}</dt><dd>${e(value)}</dd></div>`).join('')}</dl>${item.description ? `<p class="detail-description">${e(words(item.description, 100))}</p>` : ''}</div></section>`;
+  return `<section class="product-detail"><div class="detail-art">${productImage(item, true)}<span class="detail-art-spark">✦</span><span class="detail-art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span>${e(category)}</span></div><div class="detail-copy"><p class="eyebrow">${e(category)}</p><h1>${e(productTitle(item))}</h1><p class="detail-byline">Sold by <strong>${e(text(item.store, 'Amozon Marketplace'))}</strong> · Item #${e(item.parent_asin)}</p>${number(item.avg_rating) > 0 ? `<div class="detail-rating">${number(item.avg_rating).toFixed(1)} out of 5 based on ${number(item.num_reviews)} reviews</div>` : ''}<div class="detail-price">${price(item, true)}</div><dl class="detail-facts">${facts.filter(([, value]) => value != null && value !== '').map(([label, value]) => `<div><dt>${label}</dt><dd>${e(value)}</dd></div>`).join('')}</dl>${item.description ? `<p class="detail-description">${e(words(item.description, 100))}</p>` : ''}</div></section>`;
 }
 function notFound(userId, product = false) {
   return `<section class="empty-state not-found"><span aria-hidden="true">?</span><h1>${product ? 'Product' : 'Page'} not found</h1><p>${product ? 'This product could not be found.' : 'This address does not match a storefront page.'}</p><a class="button button-dark" href="${e(homeURL(userId))}">Back to recommendations</a></section>`;
@@ -182,7 +225,7 @@ function reviews(payload, page, asin, userId) {
   return `<p class="muted">${payload.total_count} total reviews</p>${payload.items.length ? payload.items.map(review => `<article class="review-card"><div class="review-product-mark" aria-hidden="true">A</div><div class="review-body"><div class="review-meta"><span>${e(review.review_rating)} / 5</span>${review.verified_purchase ? '<span class="verified-pill">Verified purchase</span>' : ''}</div>${review.review_title ? `<h3>${e(review.review_title)}</h3>` : ''}<p>${e(words(text(review.review_text, 'No written review was provided.'), 60))}</p><small>By ${e(review.user_id)}${review.review_date ? ` · ${e(review.review_date)}` : ''}</small></div></article>`).join('') : '<div class="empty-state compact-empty"><p>No reviews are available for this product yet.</p></div>'}${totalPages > 1 ? `<nav class="pagination" aria-label="Review pages">${page > 1 ? `<a data-review-page="${page - 1}" href="${e(link(page - 1))}">← Previous</a>` : ''}<span>Page ${page} of ${totalPages}</span>${page < totalPages ? `<a data-review-page="${page + 1}" href="${e(link(page + 1))}">Next →</a>` : ''}</nav>` : ''}`;
 }
 
-return {escapeHTML, homeURL, productURL, readRoute, loading, section, shopperPicker, productCard, popular, recommendations, details, notFound, reviews};
+return {escapeHTML, productTitle, homeURL, productURL, readRoute, loading, section, shopperPicker, productCard, popular, history, recommendations, details, notFound, reviews};
 })();
 
 
@@ -195,8 +238,7 @@ const rawWindow = Number(config.retryWindowMs || 300000);
 const retryWindow = Number.isFinite(rawWindow) && rawWindow > 0 ? rawWindow : 300000;
 const jobs = new Map();
 const state = {
-  userId: route.userId, shoppersReady: false, popularDone: false,
-  recommendationUser: null, page: route.page,
+  userId: route.userId, shoppersReady: false, page: route.page,
 };
 let disposed = false;
 let api;
@@ -255,7 +297,7 @@ async function loadSection(key, element, operation, render, onSuccess = () => {}
     return payload;
   } catch (error) {
     if (!current()) return null;
-    if (error instanceof APIError && error.status === 404) {
+    if (error instanceof APIError && error.status === 404 && ['details', 'reviews'].includes(key)) {
       element.innerHTML = key === 'details' ? view.notFound(state.userId, true)
         : '<div class="empty-state compact-empty"><p>This product could not be found.</p></div>';
       element.setAttribute('aria-busy', 'false');
@@ -282,7 +324,7 @@ function chooseShopper() {
     url.searchParams.set('user_id', state.userId);
     window.history.replaceState(null, '', url);
     updateLinks();
-    if (route.kind === 'home') loadRecommendations();
+    if (route.kind === 'home') loadShopperSections();
   });
 }
 
@@ -293,34 +335,43 @@ function loadShoppers() {
   }, () => {
     state.shoppersReady = true;
     chooseShopper();
-    if (route.kind === 'home' && state.popularDone) loadRecommendationsIfNeeded();
+    if (route.kind === 'home') loadShopperSections();
   });
 }
 
-function loadRecommendationsIfNeeded() {
+function loadShopperSections() {
   if (disposed) return;
   if (state.shoppersReady) {
-    if (state.recommendationUser !== state.userId) loadRecommendations();
+    loadHistory();
+    loadRecommendations();
   } else {
-    showError(document.getElementById('recommendations-content'),
-      'Load shoppers to see recommendations.', () => loadShoppers());
+    for (const section of ['history', 'recommendations']) {
+      showError(document.getElementById(`${section}-content`),
+        'Load shoppers to see your purchase history and recommendations.', () => loadShoppers());
+    }
   }
 }
 
 function loadRecommendations() {
   const userId = state.userId;
-  state.recommendationUser = userId;
   return loadSection('recommendations', document.getElementById('recommendations-content'),
     signal => userId ? api.recommendations(userId, signal) : Promise.resolve({items: []}),
     payload => view.recommendations(payload, userId));
 }
 
-function loadPopular() {
-  return loadSection('popular products', document.getElementById('popular-content'),
-    signal => api.popular(signal), items => view.popular(items, state.userId), () => {
-      state.popularDone = true;
-      loadRecommendationsIfNeeded();
-    });
+function loadHistory(page = 1) {
+  const userId = state.userId;
+  let currentPage = page;
+  return loadSection('purchase history', document.getElementById('history-content'), async signal => {
+    if (!userId) return {items: [], total_count: 0, page_count: 0};
+    let payload = await api.history(userId, currentPage, signal);
+    const lastPage = Math.max(1, payload.page_count);
+    if (currentPage > lastPage) {
+      currentPage = lastPage;
+      payload = await api.history(userId, currentPage, signal);
+    }
+    return payload;
+  }, payload => view.history(payload, currentPage, userId));
 }
 
 function loadReviews() {
@@ -359,19 +410,22 @@ function start() {
     return;
   }
   if (route.kind === 'home') {
-    root.innerHTML = view.section('popular', 'Popular items', 'SHOPPER FAVORITES')
+    root.innerHTML = view.section('history', 'Purchase history', 'YOUR PAST PURCHASES')
       + view.section('recommendations', 'Recommended for you', 'PICKED FOR YOUR PARTICULAR VIBE');
-    // Preserve the requested order; recommendations only run for the chosen shopper.
-    loadShoppers().then(() => disposed ? null : loadPopular()).then(() => {
-      if (disposed) return;
-      state.popularDone = true;
-      loadRecommendationsIfNeeded();
+    root.addEventListener('click', event => {
+      const button = event.target.closest('[data-history-page]');
+      if (!button) return;
+      const page = Number(button.dataset.historyPage);
+      if (Number.isSafeInteger(page) && page > 0) loadHistory(page);
+    });
+    loadShoppers().then(() => {
+      if (!state.shoppersReady) loadShopperSections();
     });
   } else {
     root.innerHTML = `<nav class="breadcrumbs" aria-label="Breadcrumb"><a id="back-link" href="${view.escapeHTML(view.homeURL(state.userId))}">Home</a><span aria-hidden="true">›</span><span>Product details</span></nav><div id="details-content" aria-live="polite" aria-busy="true">${view.loading('product details')}</div>`
       + view.section('product-reviews', 'Customer reviews', 'WHAT SHOPPERS SAID');
     loadSection('details', document.getElementById('details-content'), signal => api.item(route.asin, signal),
-      item => view.details(item), item => { document.title = `${item.item_title || item.parent_asin} | Amozon`; });
+      item => view.details(item), item => { document.title = `${view.productTitle(item)} | Amozon`; });
     loadReviews();
     loadShoppers();
   }

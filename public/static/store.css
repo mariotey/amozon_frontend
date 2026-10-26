@@ -87,7 +87,7 @@ button, input, select { font: inherit; }
 .muted { color: var(--muted); font-size: 12px; }
 .recommendation-note { margin: -4px 0 15px; color: var(--muted); font-size: 12px; }
 .product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.product-grid.popular-product-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.product-grid.popular-product-grid, .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .product-card { min-width: 0; overflow: hidden; display: flex; flex-direction: column; background: white; border: 1px solid #e8ebed; border-radius: 10px; box-shadow: 0 3px 12px #25323b08; }
 .product-card:hover { box-shadow: 0 9px 24px #25323b15; transform: translateY(-2px); transition: .18s ease; }
 .product-art {
@@ -119,7 +119,7 @@ button, input, select { font: inherit; }
 .verified-pill { padding: 3px 7px; border-radius: 20px; color: #4e6b58; background: #e7f0e8; font-size: 10px; }
 .review-product-link { display: inline-block; margin: 7px 0 0; color: #324652; font-size: 12px; font-weight: 700; text-decoration: none; }
 .review-body h3 { margin: 5px 0 4px; font-size: 14px; }.review-body p { margin: 5px 0 8px; color: #48545d; font-size: 13px; line-height: 1.6; }.review-body small { color: #818c93; font-size: 10px; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 18px; padding: 20px 0; color: var(--muted); font-size: 12px; }.pagination a { padding: 8px 12px; border: 1px solid var(--line); border-radius: 5px; background: #fff; text-decoration: none; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 18px; padding: 20px 0; color: var(--muted); font-size: 12px; }.pagination a, .pagination button { color: inherit; cursor: pointer; padding: 8px 12px; border: 1px solid var(--line); border-radius: 5px; background: #fff; text-decoration: none; }
 .breadcrumbs { display: flex; gap: 9px; margin: 22px 0 16px; color: #72808a; font-size: 11px; }.breadcrumbs a { text-decoration: none; }
 .product-detail { display: grid; grid-template-columns: minmax(250px, .9fr) minmax(0, 1.3fr); gap: clamp(25px, 6vw, 80px); padding: 25px; border: 1px solid var(--line); border-radius: 12px; background: white; }
 .detail-art { position: relative; min-height: 340px; display: grid; place-content: center; gap: 4px; overflow: hidden; border-radius: 9px; color: #536671; background: linear-gradient(140deg, #e4ebed, #d5e2e3); text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
@@ -137,14 +137,14 @@ button, input, select { font: inherit; }
 @media (max-width: 950px) {
   .header-main { gap: 15px; padding: 12px 18px; }
   .account-area { gap: 12px; }.account-picker select { max-width: 180px; }
-  .product-grid.popular-product-grid { grid-template-columns: repeat(5, minmax(180px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
+  .product-grid.popular-product-grid, .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(180px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
   .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 650px) {
   .header-main { flex-wrap: wrap; gap: 11px 15px; padding: 11px 14px; }
   .brand-name { font-size: 25px; }.account-area { gap: 9px; }.account-picker select { max-width: min(55vw, 220px); font-size: 12px; }
   .page-shell { width: calc(100% - 26px); }
-  .product-grid.popular-product-grid { grid-template-columns: repeat(5, minmax(155px, 1fr)); }
+  .product-grid.popular-product-grid, .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(155px, 1fr)); }
   .hero { min-height: 370px; margin: 13px 0 25px; padding: 27px 22px; align-items: flex-start; border-radius: 11px; }
   .hero-copy { max-width: 90%; }.hero h1 { font-size: clamp(34px, 10vw, 48px); }.hero-copy > p:not(.eyebrow) { max-width: 280px; font-size: 13px; }
   .hero-art { width: 48%; height: 50%; top: auto; bottom: 12px; opacity: .75; }.hero-package { width: 100px; height: 97px; font-size: 23px; }
@@ -162,3 +162,9 @@ button, input, select { font: inherit; }
 .loading-dots i:nth-child(3) { animation-delay: .4s; }
 @keyframes loading-dot { 0%, 60%, 100% { opacity: .2; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .loading-dots i { animation: none; } }
+
+/* Keep the complete product visible within the existing artwork area. */
+.product-image {
+  position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%;
+  object-fit: contain; padding: 12px; background: white;
+}
