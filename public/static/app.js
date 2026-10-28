@@ -192,12 +192,12 @@ function popular(items, userId) {
   return items.length ? `<div class="product-grid">${items.map(item => productCard(item, userId)).join('')}</div>` : '<div class="empty-state compact-empty"><p>No popular items available.</p></div>';
 }
 function history(payload, page, userId) {
-  if (!payload.items.length) return '<div class="empty-state compact-empty"><p>No purchase history available for this shopper.</p></div>';
+  if (!payload.items.length) return '<div class="empty-state compact-empty"><p>No verified purchase reviews available for this shopper.</p><p>Recommendations may still use unverified reviews.</p></div>';
   const totalPages = Math.max(1, payload.page_count);
-  return `<p class="recommendation-note">Products from your verified purchase reviews, newest reviews first.</p><div class="product-grid history-product-grid">${payload.items.map(row => row.item
+  return `<p class="recommendation-note">Products from reviews marked as verified purchases, newest reviews first. Recommendations may also use unverified reviews.</p><div class="product-grid history-product-grid">${payload.items.map(row => row.item
     ? productCard(row.item, userId)
     : `<article class="product-card"><div class="empty-state compact-empty"><p>Product details unavailable</p><small>Item #${e(row.parent_asin)}</small></div></article>`).join('')}</div>${totalPages > 1
-    ? `<nav class="pagination" aria-label="Purchase history pages">${page > 1 ? `<button type="button" data-history-page="${page - 1}">Previous</button>` : ''}<span>Page ${page} of ${totalPages}</span>${page < totalPages ? `<button type="button" data-history-page="${page + 1}">Next</button>` : ''}</nav>` : ''}`;
+    ? `<nav class="pagination" aria-label="Verified purchase review pages">${page > 1 ? `<button type="button" data-history-page="${page - 1}">Previous</button>` : ''}<span>Page ${page} of ${totalPages}</span>${page < totalPages ? `<button type="button" data-history-page="${page + 1}">Next</button>` : ''}</nav>` : ''}`;
 }
 function recommendations(payload, userId) {
   if (payload.engine_used === 'popular') {
@@ -342,7 +342,7 @@ function loadShopperSections() {
   } else {
     for (const section of ['history', 'recommendations']) {
       showError(document.getElementById(`${section}-content`),
-        'Load shoppers to see your purchase history and recommendations.', () => loadShoppers());
+        'Load shoppers to see verified purchase reviews and recommendations.', () => loadShoppers());
     }
   }
 }
@@ -357,7 +357,7 @@ function loadRecommendations() {
 function loadHistory(page = 1) {
   const userId = state.userId;
   let currentPage = page;
-  return loadSection('purchase history', document.getElementById('history-content'), async signal => {
+  return loadSection('verified purchase reviews', document.getElementById('history-content'), async signal => {
     if (!userId) return {items: [], total_count: 0, page_count: 0};
     let payload = await api.history(userId, currentPage, signal);
     const lastPage = Math.max(1, payload.page_count);
@@ -405,7 +405,7 @@ function start() {
     return;
   }
   if (route.kind === 'home') {
-    root.innerHTML = view.section('history', 'Purchase history', 'YOUR PAST PURCHASES')
+    root.innerHTML = view.section('history', 'Verified purchase reviews', 'PRODUCTS YOU REVIEWED')
       + view.section('recommendations', 'Recommended for you', 'PICKED FOR YOUR PARTICULAR VIBE');
     root.addEventListener('click', event => {
       const button = event.target.closest('[data-history-page]');
