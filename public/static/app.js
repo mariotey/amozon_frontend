@@ -41,15 +41,11 @@ function createAPI(baseURL, fetcher = globalThis.fetch) {
     try { return await response.json(); }
     catch { throw new APIError('The service returned an invalid response.'); }
   }
-  async function popular(signal) {
-    return validate(await get('/api/v1/popular_items', {limit: 5}, signal), value => list(value, product)).slice(0, 5);
-  }
   return {
     async shoppers(signal) {
       return validate(await get('/api/v1/randomusers', {n: 5}, signal),
         value => list(value, row => record(row) && typeof row.user_id === 'string' && row.user_id.length > 0));
     },
-    popular,
     async history(userId, page, signal) {
       return validate(await get(`/api/v1/users/${encodeURIComponent(userId)}/history`,
         {verified_only: true, page, page_size: 5}, signal),
@@ -58,10 +54,9 @@ function createAPI(baseURL, fetcher = globalThis.fetch) {
           && Number.isInteger(data.page_count) && data.page_count >= 0);
     },
     async recommendations(userId, signal) {
-      const value = validate(await get(`/api/v1/users/${encodeURIComponent(userId)}/recommendations`, {n: 8}, signal),
-        data => record(data) && (data.items == null || list(data.items, product)));
-      if (value.items?.length) return value;
-      return {...value, items: await popular(signal), engine_used: 'popular'};
+      // Collaborative, content, and popular results all come from this endpoint.
+      return validate(await get(`/api/v1/users/${encodeURIComponent(userId)}/recommendations`, {n: 8}, signal),
+        data => record(data) && list(data.items, product));
     },
     async item(asin, signal) {
       return validate(await get(`/api/v1/items/${encodeURIComponent(asin)}`, {}, signal), product);
