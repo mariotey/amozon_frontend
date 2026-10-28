@@ -87,7 +87,7 @@ button, input, select { font: inherit; }
 .muted { color: var(--muted); font-size: 12px; }
 .recommendation-note { margin: -4px 0 15px; color: var(--muted); font-size: 12px; }
 .product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.product-grid.popular-product-grid, .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .product-card { min-width: 0; overflow: hidden; display: flex; flex-direction: column; background: white; border: 1px solid #e8ebed; border-radius: 10px; box-shadow: 0 3px 12px #25323b08; }
 .product-card:hover { box-shadow: 0 9px 24px #25323b15; transform: translateY(-2px); transition: .18s ease; }
 .product-art {
@@ -137,14 +137,14 @@ button, input, select { font: inherit; }
 @media (max-width: 950px) {
   .header-main { gap: 15px; padding: 12px 18px; }
   .account-area { gap: 12px; }.account-picker select { max-width: 180px; }
-  .product-grid.popular-product-grid, .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(180px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
+  .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(180px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
   .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 650px) {
   .header-main { flex-wrap: wrap; gap: 11px 15px; padding: 11px 14px; }
   .brand-name { font-size: 25px; }.account-area { gap: 9px; }.account-picker select { max-width: min(55vw, 220px); font-size: 12px; }
   .page-shell { width: calc(100% - 26px); }
-  .product-grid.popular-product-grid, .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(155px, 1fr)); }
+  .product-grid.history-product-grid { grid-template-columns: repeat(5, minmax(155px, 1fr)); }
   .hero { min-height: 370px; margin: 13px 0 25px; padding: 27px 22px; align-items: flex-start; border-radius: 11px; }
   .hero-copy { max-width: 90%; }.hero h1 { font-size: clamp(34px, 10vw, 48px); }.hero-copy > p:not(.eyebrow) { max-width: 280px; font-size: 13px; }
   .hero-art { width: 48%; height: 50%; top: auto; bottom: 12px; opacity: .75; }.hero-package { width: 100px; height: 97px; font-size: 23px; }

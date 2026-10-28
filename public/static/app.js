@@ -189,7 +189,7 @@ function productCard(item, userId) {
   return `<article class="product-card"><a class="product-art" href="${href}" data-product="${e(item.parent_asin)}" aria-label="${e(`View ${title}`)}">${productImage(item)}<span class="art-spark art-spark-one">✦</span><span class="art-spark art-spark-two">✧</span><span class="art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span class="art-category">${e(category)}</span></a><div class="product-card-content"><p class="product-category">${e(category)}</p><a class="product-title" data-product="${e(item.parent_asin)}" href="${href}">${e(trim(title, 70))}</a>${number(item.avg_rating) > 0 ? `<div class="product-rating"><strong>${number(item.avg_rating).toFixed(1)}</strong><small>/ 5 average</small></div>` : ''}<div class="product-price">${price(item)}</div>${number(item.num_reviews) > 0 ? `<small class="review-count">${number(item.num_reviews)} reviews in the database</small>` : ''}</div></article>`;
 }
 function popular(items, userId) {
-  return items.length ? `<div class="product-grid popular-product-grid">${items.map(item => productCard(item, userId)).join('')}</div>` : '<div class="empty-state compact-empty"><p>No popular items available.</p></div>';
+  return items.length ? `<div class="product-grid">${items.map(item => productCard(item, userId)).join('')}</div>` : '<div class="empty-state compact-empty"><p>No popular items available.</p></div>';
 }
 function history(payload, page, userId) {
   if (!payload.items.length) return '<div class="empty-state compact-empty"><p>No purchase history available for this shopper.</p></div>';
