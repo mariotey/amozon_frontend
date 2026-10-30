@@ -192,6 +192,20 @@ function shopperPicker(users, selected) {
   const avatar = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-1a7 7 0 0 1 14 0v1"/></svg>';
   return `<div class="user-picker"><button class="account-picker" id="user-picker" type="button" role="combobox" aria-label="Change shopper, currently ${e(current.label)}" aria-haspopup="listbox" aria-expanded="false" aria-controls="shopper-options" aria-describedby="shopper-context" value="${e(current.user_id)}"><span class="account-avatar" aria-hidden="true">${avatar}</span><span class="account-greeting">Hello,</span><span class="account-name">${e(current.label)}</span></button><div class="shopper-menu" hidden aria-live="off"><p class="shopper-menu-title" id="shopper-menu-title">Select a user profile.</p><div id="shopper-options" role="listbox" aria-labelledby="shopper-menu-title">${options.map((user, index) => `<div class="shopper-option" id="shopper-option-${index}" role="option" aria-selected="${user.user_id === current.user_id}" data-shopper-id="${e(user.user_id)}" data-shopper-label="${e(user.label)}"><span class="shopper-option-avatar" aria-hidden="true">${e(user.label.match(/\d+$/)?.[0] || 'S')}</span><span>${e(user.label)}</span><svg class="shopper-option-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg></div>`).join('')}</div></div></div>`;
 }
+function starRating(value) {
+  const rating = Number(value);
+  if (value == null || value === '' || !Number.isFinite(rating)) {
+    return '<span class="muted">Rating unavailable</span>';
+  }
+  const score = Math.round(Math.min(5, Math.max(0, rating)) * 10) / 10;
+  const label = `${score} out of 5 stars`;
+  const star = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2 2 9.3l6.9-1Z"/></svg>';
+  const stars = Array.from({length: 5}, (_, index) => {
+    const fill = Math.round(Math.min(1, Math.max(0, score - index)) * 100);
+    return `<span class="rating-star" aria-hidden="true">${star}<span class="rating-star-fill" style="width: ${fill}%">${star}</span></span>`;
+  }).join('');
+  return `<span class="star-rating" role="img" aria-label="${label}" title="${label}">${stars}</span>`;
+}
 function price(item, details = false) {
   if (item.is_free) return '<strong>Free</strong>';
   if (number(item.price) > 0) return `<span>$</span><strong>${number(item.price).toFixed(2)}</strong>`;
@@ -258,7 +272,7 @@ function recommendations(payload, userId) {
 }
 function details(item) {
   const category = text(item.main_category, 'Amozon finds');
-  return `<section class="product-detail"><div class="detail-art">${productImage(item, true)}<span class="detail-art-spark">✦</span><span class="detail-art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span>${e(category)}</span></div><div class="detail-copy"><p class="eyebrow">${e(category)}</p><h1>${e(productTitle(item))}</h1><p class="detail-byline">Sold by <strong>${e(text(item.store, 'Amozon Marketplace'))}</strong> · Item #${e(item.parent_asin)}</p>${number(item.avg_rating) > 0 ? `<div class="detail-rating">${number(item.avg_rating).toFixed(1)} out of 5 based on ${number(item.num_reviews)} reviews</div>` : ''}<div class="detail-price">${price(item, true)}</div><p class="muted">Prices and product information come from a historical dataset.</p>${item.description ? `<p class="detail-description">${e(words(item.description, 100))}</p>` : ''}</div></section>`;
+  return `<section class="product-detail"><div class="detail-art">${productImage(item, true)}<span class="detail-art-spark">✦</span><span class="detail-art-letter">${e(category.slice(0, 1).toUpperCase())}</span><span>${e(category)}</span></div><div class="detail-copy"><p class="eyebrow">${e(category)}</p><h1>${e(productTitle(item))}</h1><p class="detail-byline">Sold by <strong>${e(text(item.store, 'Amozon Marketplace'))}</strong> · Item #${e(item.parent_asin)}</p>${number(item.avg_rating) > 0 ? `<div class="detail-rating">${starRating(item.avg_rating)}${number(item.num_reviews) > 0 ? `<span>Based on ${number(item.num_reviews)} reviews</span>` : ''}</div>` : ''}<div class="detail-price">${price(item, true)}</div><p class="muted">Prices and product information come from a historical dataset.</p>${item.description ? `<p class="detail-description">${e(words(item.description, 100))}</p>` : ''}</div></section>`;
 }
 function notFound(userId, product = false) {
   return `<section class="empty-state not-found"><span aria-hidden="true">?</span><h1>${product ? 'Product' : 'Page'} not found</h1><p>${product ? 'This product could not be found.' : 'This address does not match a storefront page.'}</p><a class="button button-dark" href="${e(homeURL(userId))}">Back to recommendations</a></section>`;
@@ -266,7 +280,7 @@ function notFound(userId, product = false) {
 function reviews(payload, page, asin, userId) {
   const totalPages = Math.max(1, payload.page_count);
   const link = target => `${productURL(asin, userId)}${userId ? '&' : '?'}page=${target}#product-reviews`;
-  return `<p class="muted">${payload.total_count} total reviews</p>${payload.items.length ? payload.items.map(review => `<article class="review-card"><div class="review-product-mark" aria-hidden="true">A</div><div class="review-body"><div class="review-meta"><span>${e(review.review_rating)} / 5</span>${review.verified_purchase ? '<span class="verified-purchase">Verified purchase</span>' : ''}</div>${review.review_title ? `<h3>${e(review.review_title)}</h3>` : ''}<p>${e(words(text(review.review_text, 'No written review was provided.'), 60))}</p><small>By ${e(review.user_id)}${review.review_date ? ` · ${e(review.review_date)}` : ''}</small></div></article>`).join('') : '<div class="empty-state compact-empty"><p>No reviews are available for this product yet.</p></div>'}${totalPages > 1 ? `<nav class="pagination" aria-label="Review pages">${page > 1 ? `<a data-review-page="${page - 1}" href="${e(link(page - 1))}">← Previous</a>` : ''}<span>Page ${page} of ${totalPages}</span>${page < totalPages ? `<a data-review-page="${page + 1}" href="${e(link(page + 1))}">Next →</a>` : ''}</nav>` : ''}`;
+  return `<p class="muted">${payload.total_count} total reviews</p>${payload.items.length ? payload.items.map(review => `<article class="review-card"><div class="review-product-mark" aria-hidden="true">A</div><div class="review-body"><div class="review-meta">${starRating(review.review_rating)}${review.verified_purchase ? '<span class="verified-purchase">Verified purchase</span>' : ''}</div>${review.review_title ? `<h3>${e(review.review_title)}</h3>` : ''}<p>${e(words(text(review.review_text, 'No written review was provided.'), 60))}</p><small>By ${e(review.user_id)}${review.review_date ? ` · ${e(review.review_date)}` : ''}</small></div></article>`).join('') : '<div class="empty-state compact-empty"><p>No reviews are available for this product yet.</p></div>'}${totalPages > 1 ? `<nav class="pagination" aria-label="Review pages">${page > 1 ? `<a data-review-page="${page - 1}" href="${e(link(page - 1))}">← Previous</a>` : ''}<span>Page ${page} of ${totalPages}</span>${page < totalPages ? `<a data-review-page="${page + 1}" href="${e(link(page + 1))}">Next →</a>` : ''}</nav>` : ''}`;
 }
 
 return {escapeHTML, productTitle, homeURL, productURL, readRoute, loading, section, shopperPicker, productCard, history, historyCards, recommendations, details, notFound, reviews};
