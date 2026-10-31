@@ -1,9 +1,10 @@
-// Only display labels live here; the backend owns the three demo shopper IDs.
-const DEMO_SHOPPER_LABELS = {
-  collaborative: 'Shopper 1',
-  content_based: 'Shopper 2',
-  popular: 'Shopper 3',
-};
+// Fixed examples for the published models; the API still chooses the actual engine.
+// Recheck all three scenarios after model or dataset updates.
+const DEMO_SHOPPERS = [
+  {user_id: 'ae24aljoiqjoibv3ycrbis4ekx2a', label: 'Shopper 1'}, // Collaborative
+  {user_id: 'aeayitldccp4fwimhv7tgr67ysnq', label: 'Shopper 2'}, // Content-based
+  {user_id: 'aeqwyrohwdka275azy6mrqlu33vq', label: 'Shopper 3'}, // Popular fallback
+];
 
 class APIError extends Error {
   constructor(message, status = 0, retryAfter = 0) {
@@ -49,15 +50,6 @@ function createAPI(baseURL, fetcher = globalThis.fetch) {
     catch { throw new APIError('The service returned an invalid response.'); }
   }
   return {
-    async demoUsers(signal) {
-      const users = validate(await get('/api/v1/demo_user', {}, signal), value =>
-        record(value) && Object.keys(value).length === 3
-        && Object.keys(DEMO_SHOPPER_LABELS).every(scenario =>
-          typeof value[scenario] === 'string' && value[scenario].trim().length > 0
-          && value[scenario] === value[scenario].trim())
-        && new Set(Object.values(value)).size === 3);
-      return Object.entries(DEMO_SHOPPER_LABELS).map(([scenario, label]) => ({user_id: users[scenario], label}));
-    },
     async history(userId, signal) {
       const pageSize = 100;
       const fetchPage = async page => validate(await get(`/api/v1/users/${encodeURIComponent(userId)}/history`,
@@ -178,10 +170,11 @@ function readRoute(url) {
   };
 }
 function loading(label, waiting = false) {
-  return `<div class="empty-state compact-empty loading-state"><p class="loading-message">${e(waiting ? 'Waiting for the service to respond' : `Loading ${label}`)}<span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>${waiting ? '<p class="loading-help">The service may be waking up. This section will update automatically.</p>' : ''}</div>`;
+  const message = ['history', 'recommendations'].includes(label) ? 'Loading' : `Loading ${label}`;
+  return `<div class="empty-state compact-empty loading-state"><p class="loading-message">${e(waiting ? 'Waiting for the service to respond' : message)}<span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>${waiting ? '<p class="loading-help">The service may be waking up. This section will update automatically.</p>' : ''}</div>`;
 }
 function section(id, title, eyebrow = '') {
-  return `<section class="section-block" id="${id}" aria-labelledby="${id}-heading"><div class="section-heading"><div>${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h2 id="${id}-heading">${e(title)}</h2></div></div><div id="${id}-content" aria-live="polite" aria-busy="true">${loading(title.toLowerCase())}</div></section>`;
+  return `<section class="section-block" id="${id}" aria-labelledby="${id}-heading"><div class="section-heading"><div>${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h2 id="${id}-heading">${e(title)}</h2></div></div><div id="${id}-content" aria-live="polite" aria-busy="true">${loading(['history', 'recommendations'].includes(id) ? id : title.toLowerCase())}</div></section>`;
 }
 function shopperPicker(users, selected) {
   const options = [...users];
@@ -366,8 +359,7 @@ async function loadSection(key, element, operation, render, onSuccess = () => {}
     } else {
       console.warn(`Unable to load ${key}`, error instanceof APIError ? `HTTP ${error.status}` : error.name);
       showError(element,
-        key === 'demo shoppers' ? 'Demo shopper selection is unavailable. Please try again.'
-        : error instanceof APIError && error.status >= 400 && error.status < 500 && ![408, 429].includes(error.status)
+        error instanceof APIError && error.status >= 400 && error.status < 500 && ![408, 429].includes(error.status)
           ? 'This request could not be completed.'
           : 'Unable to reach the service. Please try again shortly.',
         () => loadSection(key, element, operation, render, onSuccess));
@@ -481,24 +473,12 @@ function chooseShopper() {
   }, events);
 }
 
-function loadDemoShoppers() {
-  shopperPickerEvents?.abort();
-  const needsDefaultShopper = !state.userId;
-  return loadSection('demo shoppers', shoppersElement, signal => api.demoUsers(signal), users => {
-    if (!state.userId) state.userId = users[0].user_id;
-    return view.shopperPicker(users, state.userId);
-  }, () => {
-    chooseShopper();
-    if (route.kind === 'home' && needsDefaultShopper) loadShopperSections();
-  }).then(users => {
-    if (!users && !disposed && route.kind === 'home' && !state.userId) {
-      for (const section of ['history', 'recommendations']) {
-        showError(document.getElementById(`${section}-content`),
-          'Load demo shoppers to explore reviews and recommendations.', loadDemoShoppers);
-      }
-    }
-    return users;
-  });
+function renderDemoShoppers() {
+  if (!state.userId) state.userId = DEMO_SHOPPERS[0].user_id;
+  shoppersElement.innerHTML = view.shopperPicker(DEMO_SHOPPERS, state.userId);
+  shoppersElement.setAttribute('aria-busy', 'false');
+  chooseShopper();
+  updateLinks();
 }
 
 function loadShopperSections() {
@@ -599,7 +579,7 @@ function loadHistory() {
   const userId = state.userId;
   state.history = null;
   state.historyPage = 0;
-  return loadSection('verified purchase reviews', document.getElementById('history-content'),
+  return loadSection('history', document.getElementById('history-content'),
     signal => userId ? api.history(userId, signal) : Promise.resolve({items: [], total_count: 0}),
     payload => view.history(payload, userId, historyPageSize()),
     payload => {
@@ -694,15 +674,15 @@ function start() {
       event.preventDefault();
       showHistoryPage(target, true);
     });
-    loadDemoShoppers();
-    if (state.userId) loadShopperSections();
+    renderDemoShoppers();
+    loadShopperSections();
   } else {
     root.innerHTML = `<nav class="breadcrumbs" aria-label="Breadcrumb"><a id="back-link" href="${view.escapeHTML(view.homeURL(state.userId))}">Home</a><span aria-hidden="true">›</span><span>Product details</span></nav><div id="details-content" aria-live="polite" aria-busy="true">${view.loading('product details')}</div>`
       + view.section('product-reviews', 'Customer reviews', 'WHAT SHOPPERS SAID');
     loadSection('details', document.getElementById('details-content'), signal => api.item(route.asin, signal),
       item => view.details(item), item => { document.title = `${view.productTitle(item)} | Amozon`; });
     loadReviews();
-    loadDemoShoppers();
+    renderDemoShoppers();
   }
 }
 
