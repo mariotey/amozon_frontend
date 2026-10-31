@@ -1,36 +1,57 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#131921">
-    <meta name="description" content="Explore a recommendation-powered demo storefront using sample shoppers and historical Amazon review data.">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#131921" />
+    <meta
+      name="description"
+      content="{{
+        'Explore a recommendation-powered demo storefront using sample shoppers ' ~
+        'and historical Amazon review data.'
+      }}"
+    />
     <title>Amozon | Recommendation Storefront</title>
     {# Shared styles first, then component styles; retain this cascade order. #}
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/layout.css">
-    <link rel="stylesheet" href="/static/css/header.css">
-    <link rel="stylesheet" href="/static/css/products.css">
-    <link rel="stylesheet" href="/static/css/reviews.css">
-    <link rel="stylesheet" href="/static/css/home.css">
-    <link rel="stylesheet" href="/static/css/feedback.css">
-    <link rel="stylesheet" href="/static/css/drawer.css">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317212b'/%3E%3Ctext x='8' y='24' fill='%23ffad45' font-size='28' font-family='Arial'%3Ea%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/layout.css" />
+    <link rel="stylesheet" href="/static/css/header.css" />
+    <link rel="stylesheet" href="/static/css/products.css" />
+    <link rel="stylesheet" href="/static/css/reviews.css" />
+    <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="stylesheet" href="/static/css/feedback.css" />
+    <link rel="stylesheet" href="/static/css/drawer.css" />
+    <link
+      rel="icon"
+      href="{{
+      'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'' ~
+      ' viewBox=\'0 0 32 32\'%3E%3Crect width=\'32\' height=\'32\' rx=\'6\'' ~
+      ' fill=\'%2317212b\'/%3E%3Ctext x=\'8\' y=\'24\' fill=\'%23ffad45\' f' ~
+      'ont-size=\'28\' font-family=\'Arial\'%3Ea%3C/text%3E%3C/svg%3E'
+    }}"
+    />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
-    {% include "components/header.html" %}
-    {% include "components/drawer.html" %}
-    <p class="visually-hidden" id="shopper-context">Explore the store as a sample shopper. Choose a shopper above to see their reviews and the recommendations they receive.</p>
+    {% include "components/header.html" %} {% include "components/drawer.html" %}
+    <p class="visually-hidden" id="shopper-context"
+      >Explore the store as a sample shopper. Choose a shopper above to see their reviews and the
+      recommendations they receive.</p
+    >
 
     <main class="page-shell" id="main-content" tabindex="-1">
       <div id="storefront">{% block content %}{% endblock %}</div>
       <noscript><p>Please enable JavaScript to load shoppers, products, and reviews.</p></noscript>
     </main>
     <footer class="site-footer">
-      <p>Amozon is a parody demo storefront. It is not affiliated with Amazon, and purchases are entirely imaginary.</p>
+      <p
+        >Amozon is a parody demo storefront. It is not affiliated with Amazon, and purchases are
+        entirely imaginary.</p
+      >
     </footer>
-    <script id="app-config" type="application/json">{{ client_config | tojson }}</script>
+    <script id="app-config" type="application/json">
+      {{ client_config | tojson }}
+    </script>
     <script type="module" src="/static/app.js"></script>
   </body>
 </html>

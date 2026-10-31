@@ -1,5 +1,14 @@
-{% extends "base.html" %}
-
-{% block content %}
-  <section class="empty-state not-found"><span aria-hidden="true">?</span><h1>Page not found</h1><p>This address does not match a storefront page.</p><a class="button button-dark" href="{{ url_for('home', user_id=request.args.get('user_id')) if request.args.get('user_id') else url_for('home') }}">Back to recommendations</a></section>
+{% extends "base.html" %} {% block content %}
+<section class="empty-state not-found"
+  ><span aria-hidden="true">?</span><h1>Page not found</h1
+  ><p>This address does not match a storefront page.</p
+  ><a
+    class="button button-dark"
+    href="{{
+      url_for('home', user_id=request.args.get('user_id')) if
+      request.args.get('user_id') else url_for('home')
+    }}"
+    >Back to recommendations</a
+  ></section
+>
 {% endblock %}

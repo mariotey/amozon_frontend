@@ -1,38 +1,101 @@
 <dialog class="project-drawer" id="project-menu" aria-labelledby="project-menu-title">
   <div class="project-drawer-header">
-    <svg class="project-drawer-avatar" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg>
+    <svg
+      class="project-drawer-avatar"
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="9" r="3" />
+      <path d="M5 19a7 7 0 0 1 14 0" />
+    </svg>
     <h2 id="project-menu-title">Hello, shopper</h2>
-    <button class="project-menu-close" id="project-menu-close" type="button" aria-label="Close store menu" autofocus>
-      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    <button
+      class="project-menu-close"
+      id="project-menu-close"
+      type="button"
+      aria-label="Close store menu"
+      autofocus
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
     </button>
   </div>
   <nav class="project-nav" aria-label="Storefront information">
     <details class="project-about" name="store-menu-sections" id="about-project">
       <summary>About the Project</summary>
       <div class="project-about-content">
-        <p>Amozon is a data science and machine learning engineering portfolio project. Shopper 1, Shopper 2, and Shopper 3 each represent a different anonymized profile from the review dataset. Switching shoppers changes whose reviews and recommendations you see.</p>
+        <p
+          >Amozon is a data science and machine learning engineering portfolio project. Shopper 1,
+          Shopper 2, and Shopper 3 each represent a different anonymized profile from the review
+          dataset. Switching shoppers changes whose reviews and recommendations you see.</p
+        >
         <h3>How the store chooses products</h3>
         <ol>
-          <li><strong>Patterns in shopper ratings.</strong> Collaborative filtering (ALS) learns patterns across user ratings.</li>
-          <li><strong>Similar product descriptions.</strong> If the first approach has no usable picks, content-based filtering (TF-IDF) uses product text and positive reviews.</li>
-          <li><strong>Popular picks.</strong> If neither approach produces picks, the store falls back to popular products.</li>
+          <li
+            ><strong>Patterns in shopper ratings.</strong> Collaborative filtering (ALS) learns
+            patterns across user ratings.</li
+          >
+          <li
+            ><strong>Similar product descriptions.</strong> If the first approach has no usable
+            picks, content-based filtering (TF-IDF) uses product text and positive reviews.</li
+          >
+          <li
+            ><strong>Popular picks.</strong> If neither approach produces picks, the store falls
+            back to popular products.</li
+          >
         </ol>
-        <p>These are fixed example shoppers, chosen to demonstrate each scenario. The backend still follows this order automatically; model or data updates may change which approach a shopper receives. Each approach is documented and evaluated separately in its own notebook.</p>
+        <p
+          >These are fixed example shoppers, chosen to demonstrate each scenario. The backend still
+          follows this order automatically; model or data updates may change which approach a
+          shopper receives. Each approach is documented and evaluated separately in its own
+          notebook.</p
+        >
       </div>
     </details>
     <details class="project-about" name="store-menu-sections" id="about-data">
       <summary>About the Data Used</summary>
       <div class="project-about-content">
-        <p>The project uses the first 5% of review records from the Software category of Amazon Reviews 2023, with matching product information. This is a historical slice, not a random sample or a complete purchase history. Prices are historical, and the models do not learn while you browse.</p>
-        <p>The notebooks use earlier reviews for training and later reviews for validation and testing. They report how well each approach retrieves and ranks relevant products, along with the users and products it cannot support. These results do not measure actual purchases or sales.</p>
+        <p
+          >The project uses the first 5% of review records from the Software category of Amazon
+          Reviews 2023, with matching product information. This is a historical slice, not a random
+          sample or a complete purchase history. Prices are historical, and the models do not learn
+          while you browse.</p
+        >
+        <p
+          >The notebooks use earlier reviews for training and later reviews for validation and
+          testing. They report how well each approach retrieves and ranks relevant products, along
+          with the users and products it cannot support. These results do not measure actual
+          purchases or sales.</p
+        >
       </div>
     </details>
     <details class="project-about" name="store-menu-sections" id="project-resources">
       <summary>Resources</summary>
       <div class="project-about-content">
         <ul class="resource-links">
-          <li><a href="https://github.com/mariotey/amozon_frontend">Frontend repository<span>Storefront and shopper experience.</span></a></li>
-          <li><a href="https://github.com/mariotey/amozon_backend">Backend repository<span>Recommendation models, training notebooks, and API.</span></a></li>
+          <li
+            ><a href="https://github.com/mariotey/amozon_frontend"
+              >Frontend repository<span>Storefront and shopper experience.</span></a
+            ></li
+          >
+          <li
+            ><a href="https://github.com/mariotey/amozon_backend"
+              >Backend repository<span>Recommendation models, training notebooks, and API.</span></a
+            ></li
+          >
         </ul>
       </div>
     </details>

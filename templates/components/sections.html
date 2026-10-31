@@ -1,8 +1,21 @@
 {# Initial placeholders only; components/feedback.js owns async request feedback. #}
 {% macro loading(label='') -%}
-<div class="empty-state compact-empty loading-state"><p class="loading-message">Loading{{ (' ' ~ label) if label else '' }}<span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p></div>
+<div class="empty-state compact-empty loading-state">
+  <p class="loading-message">Loading{{ (' ' ~ label) if label else '' }}<span
+    class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+</div>
 {%- endmacro %}
 
 {% macro section(id, title, eyebrow, loading_label='') -%}
-<section class="section-block" id="{{ id }}" aria-labelledby="{{ id }}-heading"><div class="section-heading"><div><p class="eyebrow">{{ eyebrow }}</p><h2 id="{{ id }}-heading">{{ title }}</h2></div></div><div id="{{ id }}-content" aria-live="polite" aria-busy="true">{{ loading(loading_label) }}</div></section>
+<section class="section-block" id="{{ id }}" aria-labelledby="{{ id }}-heading">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">{{ eyebrow }}</p>
+      <h2 id="{{ id }}-heading">{{ title }}</h2>
+    </div>
+  </div>
+  <div id="{{ id }}-content" aria-live="polite" aria-busy="true">
+    {{ loading(loading_label) }}
+  </div>
+</section>
 {%- endmacro %}
