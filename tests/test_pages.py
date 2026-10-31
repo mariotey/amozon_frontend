@@ -24,11 +24,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Create an isolated Flask client for the current regression test.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         self.client = create_app(
@@ -40,11 +38,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify page-specific content and shared navigation on the home and product routes.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         for path, present, absent in (
@@ -73,11 +69,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify template fragments resolve when the process starts outside the repository.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         import os
@@ -102,11 +96,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify the deployment copy preserves every asset and its locally served URL.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         import tempfile
@@ -136,11 +128,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify both page templates load every stylesheet in the same cascade order.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         root = Path(__file__).resolve().parents[1]
@@ -165,11 +155,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify the initial home sections use the short loading message.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         html = self.client.get("/").get_data(as_text=True)
@@ -180,11 +168,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify explicit API settings, safe JSON serialization, and retry defaults.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
 
@@ -193,12 +179,10 @@ class StorefrontPagesTests(unittest.TestCase):
             Read the serialized browser configuration from a rendered test page.
 
             Args:
-
             - client(FlaskClient): The Flask client used to request the page.
             - **options(Any): Additional keyword arguments passed to the client request.
 
             Returns:
-
             - dict[str, Any]: The browser configuration decoded from the page JSON.
             """
             html = client.get("/", **options).get_data(as_text=True)
@@ -230,11 +214,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify local dotenv settings, deployment precedence, and missing-setting errors.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         import tempfile
@@ -256,11 +238,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify unknown URLs, the liveness route, and missing static assets.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         for path in ("/missing", "/product/a/b"):
@@ -277,11 +257,9 @@ class StorefrontPagesTests(unittest.TestCase):
         Verify module files and their relative imports are served as JavaScript.
 
         Args:
-
         - self(StorefrontPagesTests): The current test case.
 
         Returns:
-
         - None: No value is returned.
         """
         root = Path(__file__).resolve().parents[1]

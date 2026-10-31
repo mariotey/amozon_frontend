@@ -17,11 +17,9 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     Create the storefront application with explicit API settings and page routes.
 
     Args:
-
     - config(dict[str, Any] | None): Optional Flask configuration overrides.
 
     Returns:
-
     - Flask: The configured storefront application.
     """
     load_dotenv(ENV_FILE)
@@ -47,12 +45,10 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         Render a page template with the browser configuration and HTTP status.
 
         Args:
-
         - template(str): The page template filename.
         - status(int): The HTTP response status.
 
         Returns:
-
         - tuple[str, int]: Rendered HTML and its HTTP status.
         """
         return (
@@ -72,11 +68,9 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         Render the home page containing shopper reviews and recommendations.
 
         Args:
-
         - None: This function takes no arguments.
 
         Returns:
-
         - tuple[str, int]: The home page HTML and HTTP status.
         """
         return page("home.html")
@@ -88,11 +82,9 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         Render a product page shell; the browser retrieves product data from FastAPI.
 
         Args:
-
         - item_id(str): The product identifier carried in the page URL.
 
         Returns:
-
         - tuple[str, int]: The product page HTML and HTTP status.
         """
         return page("product.html")
@@ -103,11 +95,9 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         Report that the Flask process can respond to requests.
 
         Args:
-
         - None: This function takes no arguments.
 
         Returns:
-
         - dict[str, str]: A process liveness status; backend readiness is not checked.
         """
         return {"status": "ok"}
@@ -118,11 +108,9 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         Render the storefront error page for an unknown URL.
 
         Args:
-
         - error(NotFound): The routing exception raised for the missing resource.
 
         Returns:
-
         - tuple[str, int]: The error page HTML and HTTP 404 status.
         """
         return page("not_found.html", 404)
@@ -133,11 +121,9 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         Prevent browser caching of page responses while retaining static asset caching.
 
         Args:
-
         - response(Response): The outgoing Flask response.
 
         Returns:
-
         - Response: The same response with page cache headers applied.
         """
         if not request.path.startswith("/static/"):

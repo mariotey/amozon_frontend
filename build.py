@@ -15,11 +15,9 @@ def prepare_static(destination: str | Path | None = None) -> Path:
     Copy static sources into the CDN output directory for deployment.
 
     Args:
-
     - destination(str | Path | None): Optional output directory; defaults to public/static.
 
     Returns:
-
     - Path: The directory containing the copied static assets.
     """
     source = ROOT / "static"
