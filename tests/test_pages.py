@@ -1,16 +1,20 @@
 """Route/template/module integration without contacting the recommendation API."""
 import json
+import os
 from pathlib import Path
 import posixpath
 import re
 import unittest
+from unittest.mock import patch
 
-from app import create_app
+# Tests do not depend on a developer's ignored .env file being present.
+with patch.dict(os.environ, {"API_BASE_URL": "https://api.example"}):
+    from app import create_app
 
 
 class StorefrontPagesTests(unittest.TestCase):
     def setUp(self):
-        self.client = create_app({"TESTING": True}).test_client()
+        self.client = create_app({"TESTING": True, "API_BASE_URL": "https://api.example"}).test_client()
 
     def test_pages_have_distinct_content_and_shared_navigation(self):
         for path, present, absent in (
@@ -37,7 +41,7 @@ class StorefrontPagesTests(unittest.TestCase):
             previous = os.getcwd()
             try:
                 os.chdir(directory)
-                app = create_app({"TESTING": True})
+                app = create_app({"TESTING": True, "API_BASE_URL": "https://api.example"})
                 self.assertIn("project-menu", app.jinja_env.get_template("components/drawer.html").render())
                 response = app.test_client().get("/")
                 self.assertEqual(response.status_code, 200)
@@ -90,23 +94,37 @@ class StorefrontPagesTests(unittest.TestCase):
         html = self.client.get("/").get_data(as_text=True)
         self.assertEqual(html.count('class="loading-message">Loading<span'), 2)
 
-    def test_config_defaults_overrides_and_safe_serialization(self):
+    def test_config_uses_explicit_api_url_and_safe_serialization(self):
         def config(client, **options):
             html = client.get("/", **options).get_data(as_text=True)
             return json.loads(re.search(r'<script id="app-config"[^>]*>(.*?)</script>', html, re.S)[1])
 
-        # Explicit None makes the host defaults independent of the test runner's environment.
-        client = create_app({"TESTING": True, "API_BASE_URL": None}).test_client()
-        self.assertEqual(config(client)["apiBaseURL"], "http://127.0.0.1:8000")
+        client = create_app({"TESTING": True, "API_BASE_URL": "https://api.example"}).test_client()
+        self.assertEqual(config(client)["apiBaseURL"], "https://api.example")
         self.assertEqual(config(client, base_url="https://store.example")["apiBaseURL"],
-                         "https://amozon-backend-tg7x.onrender.com")
+                         "https://api.example")
         value = 'https://api.example/</script><script>unsafe</script>'
         client = create_app({"TESTING": True, "API_BASE_URL": value,
                              "RETRY_WINDOW_MS": 1200}).test_client()
         self.assertEqual(config(client), {"apiBaseURL": value, "retryWindowMs": 1200})
         for invalid in (0, -1, None, "invalid"):
-            client = create_app({"TESTING": True, "RETRY_WINDOW_MS": invalid}).test_client()
+            client = create_app({"TESTING": True, "API_BASE_URL": "https://api.example", "RETRY_WINDOW_MS": invalid}).test_client()
             self.assertEqual(config(client)["retryWindowMs"], 300000)
+
+    def test_local_dotenv_loads_without_overriding_deployment_environment(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            env_file.write_text("API_BASE_URL=https://local.example\n", encoding="utf-8")
+            with patch("app.ENV_FILE", env_file), patch.dict(os.environ, {}, clear=True):
+                self.assertEqual(create_app().config["API_BASE_URL"], "https://local.example")
+                os.environ["API_BASE_URL"] = "https://deployment.example"
+                self.assertEqual(create_app().config["API_BASE_URL"], "https://deployment.example")
+                env_file.unlink()
+                os.environ.pop("API_BASE_URL")
+                with self.assertRaisesRegex(RuntimeError, "Set API_BASE_URL"):
+                    create_app()
 
     def test_unknown_paths_health_and_missing_assets(self):
         for path in ("/missing", "/product/a/b"):

@@ -1,12 +1,18 @@
 """Small Flask page server; the browser loads live FastAPI data asynchronously."""
 
 import os
-from urllib.parse import urlsplit
+from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Flask, render_template, request
 
 
+ENV_FILE = Path(__file__).with_name(".env")
+
+
 def create_app(config=None):
+    # Local settings supplement the environment; deployment values take precedence.
+    load_dotenv(ENV_FILE)
     # Local Flask serves static/; Vercel receives the same assets at build time.
     app = Flask(__name__)
     app.config.from_mapping(
@@ -15,6 +21,8 @@ def create_app(config=None):
     )
     if config:
         app.config.update(config)
+    if not app.config["API_BASE_URL"]:
+        raise RuntimeError("Set API_BASE_URL in the environment or the local .env file.")
     try:
         retry_window = int(app.config["RETRY_WINDOW_MS"])
         if retry_window <= 0:
@@ -23,13 +31,8 @@ def create_app(config=None):
         retry_window = 300000
 
     def page(template, status=200):
-        api_base_url = app.config["API_BASE_URL"]
-        if not api_base_url:
-            # A local storefront should use the backend from the same checkout.
-            local = urlsplit(request.host_url).hostname in {"localhost", "127.0.0.1", "::1"}
-            api_base_url = "http://127.0.0.1:8000" if local else "https://amozon-backend-tg7x.onrender.com"
         return render_template(template, client_config={
-            "apiBaseURL": api_base_url,
+            "apiBaseURL": app.config["API_BASE_URL"],
             "retryWindowMs": retry_window,
         }), status
 

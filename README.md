@@ -6,22 +6,31 @@ live data from FastAPI. There is no frontend framework, bundler, or npm install.
 
 ## Run locally (PowerShell)
 
-From this repository, install dependencies with `uv sync` if needed, then run:
+From this repository, install dependencies with `uv sync` if needed. Create a
+local `.env` file beside `app.py` containing:
+
+```dotenv
+API_BASE_URL=https://amozon-backend-tg7x.onrender.com
+```
+
+The local file is already created in this workspace and is ignored by Git. A new
+clone needs its own `.env`, or an `API_BASE_URL` environment variable. Start Flask:
 
 ```powershell
-$env:API_BASE_URL = "https://amozon-backend-tg7x.onrender.com"
 .\.venv\Scripts\python.exe -m flask --app app run --debug
 ```
 
 Open http://127.0.0.1:5000. The hosted backend may take time to wake up. Stop with
-Ctrl+C. To use a local backend, start it on port 8000 and set
-`$env:API_BASE_URL = "http://127.0.0.1:8000"` before starting Flask instead.
-Restart Flask after changing environment variables.
+Ctrl+C. To use a local backend, start it on port 8000 and change the `.env` value
+to `http://127.0.0.1:8000`. An existing environment variable takes precedence over
+the `.env` value. Restart Flask after changing configuration.
 
-Without an override, localhost uses port 8000; public storefront hosts use the
-hosted backend. `RETRY_WINDOW_MS` is an optional Flask factory config override
-(default 300000 ms), not an environment variable. Browser requests retry temporary
-failures within that window. `/health` checks Flask, not backend readiness.
+`API_BASE_URL` is required on every host; there is no hostname-based default.
+`python-dotenv` loads the repository's `.env` when present without overwriting an
+existing environment variable. Missing configuration stops startup with a clear
+error. `RETRY_WINDOW_MS` is an optional Flask factory config override (default
+300000 ms), not an environment variable. Browser requests retry temporary failures
+within that window. `/health` checks Flask, not backend readiness.
 
 ## Code map
 
@@ -184,6 +193,9 @@ library, with no npm dependencies or JavaScript compilation. A clean deployment
 regenerates the output from the checked-in sources. You can inspect it locally
 with `python build.py`, but Flask does not need it.
 
-Set `API_BASE_URL` in Vercel's environment only when overriding the hosted default.
+Set `API_BASE_URL=https://amozon-backend-tg7x.onrender.com` in Vercel's environment
+for each deployment environment you use (such as Production and Preview), then
+redeploy. Vercel must provide this variable; the ignored local `.env` is not part
+of deployment. The repository no longer supplies a default backend URL.
 Serve the site through Flask/Vercel, rather than opening HTML files directly,
 because templates and JavaScript modules require HTTP serving.

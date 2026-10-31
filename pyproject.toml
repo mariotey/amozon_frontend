@@ -3,7 +3,7 @@ name = "amozon-frontend"
 version = "1.0.0"
 description = "A simple Flask storefront with live FastAPI data"
 requires-python = ">=3.13,<3.14"
-dependencies = ["flask>=3.1,<4"]
+dependencies = ["flask>=3.1,<4", "python-dotenv>=1,<2"]
 
 [tool.uv]
 package = false
