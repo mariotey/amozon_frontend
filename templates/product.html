@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "components/sections.html" import loading, section %}
+
+{% block content %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><a id="back-link" href="{{ url_for('home', user_id=request.args.get('user_id')) if request.args.get('user_id') else url_for('home') }}">Home</a><span aria-hidden="true">›</span><span>Product details</span></nav>
+  <div id="details-content" aria-live="polite" aria-busy="true">{{ loading('product details') }}</div>
+  {{ section('product-reviews', 'Customer reviews', 'WHAT SHOPPERS SAID', 'customer reviews') }}
+{% endblock %}

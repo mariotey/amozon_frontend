@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% from "components/sections.html" import section %}
+
+{% block content %}
+  {{ section('history', "This shopper's reviews", 'VERIFIED PURCHASE REVIEWS') }}
+  {{ section('recommendations', 'Recommendations', 'DISCOVER SOMETHING NEW') }}
+{% endblock %}

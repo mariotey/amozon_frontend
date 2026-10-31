@@ -1,0 +1,109 @@
+/* Design tokens, element defaults, shared buttons, accessibility, and global reduced motion. */
+
+:root {
+  color-scheme: light;
+  --ink: #202a34;
+  --muted: #687581;
+  --navy: #17212b;
+  --navy-deep: #111820;
+  --orange: #ffad45;
+  --paper: #f3f5f6;
+  --line: #e2e6e8;
+  --white: #fff;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 12px;
+  z-index: 10;
+  padding: 12px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+button {
+  cursor: pointer;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 43px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.button-dark {
+  color: #fff;
+  background: var(--navy-deep);
+}
+
+.button-dark:hover {
+  background: #303e49;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+  }
+}
+
+summary:focus-visible {
+  outline: 2px solid #a45e1b;
+  outline-offset: 4px;
+  border-radius: 2px;
+}

@@ -1,3 +1,4 @@
 {
-  "framework": "flask"
+  "framework": "flask",
+  "buildCommand": "python build.py"
 }

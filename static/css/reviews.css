@@ -1,0 +1,88 @@
+/* Product customer reviews, verified-purchase text, and review page navigation. */
+
+.review-card {
+  display: flex;
+  gap: 15px;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-product-mark {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #fff;
+  background: linear-gradient(140deg, #334a56, #697e87);
+  font-weight: 900;
+}
+
+.review-body {
+  min-width: 0;
+}
+
+.review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: #6c7780;
+  font-size: 11px;
+}
+
+.verified-purchase {
+  color: #4e6b58;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.review-body h3 {
+  margin: 5px 0 4px;
+  font-size: 14px;
+}
+
+.review-body p {
+  margin: 5px 0 8px;
+  color: #48545d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.review-body small {
+  color: #818c93;
+  font-size: 10px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pagination a, .pagination button {
+  color: inherit;
+  cursor: pointer;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  text-decoration: none;
+}
+
+@media (max-width: 650px) {
+  .review-card {
+    gap: 10px;
+  }
+
+  .review-product-mark {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+}

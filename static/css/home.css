@@ -1,0 +1,150 @@
+/* Shopper review history, recommendation explanations, and the stable-height sliding carousel. */
+
+.recommendation-note {
+  margin: -4px 0 15px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#history-content {
+  --history-page-size: 5;
+}
+
+.product-grid.history-product-grid {
+  grid-template-columns: repeat(var(--history-page-size), minmax(0, 1fr));
+  height: var(--history-card-height, auto);
+}
+
+@media (max-width: 950px) {
+  #history-content {
+    --history-page-size: 3;
+  }
+}
+
+@media (max-width: 650px) {
+  #history-content {
+    --history-page-size: 2;
+  }
+}
+
+.history-context > summary, .recommendation-explanation > summary {
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 0;
+  cursor: pointer;
+  color: #344e60;
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+.history-context > summary:hover, .recommendation-explanation > summary:hover {
+  text-decoration: underline;
+}
+
+.history-context {
+  margin: -7px 0 16px;
+  color: #52616b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.history-context p, .recommendation-explanation p {
+  margin: 6px 0 12px;
+  padding-inline-start: 16px;
+  overflow-wrap: anywhere;
+}
+
+.recommendation-explanation {
+  margin: -7px 0 16px;
+  min-width: 0;
+  color: #52616b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.shopper-review {
+  align-self: stretch;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: #334956;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.shopper-review small {
+  display: block;
+  margin-top: 3px;
+  color: #52616b;
+  font-size: 11px;
+}
+
+@media (max-width: 650px) {
+  .shopper-review {
+    font-size: 11px;
+  }
+}
+
+.history-carousel {
+  position: relative;
+  overflow: hidden;
+  padding: 12px;
+  margin: -12px;
+}
+
+.history-outgoing {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  pointer-events: none;
+}
+
+.history-product-grid.history-measure {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: auto;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.history-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 14px 0 0;
+}
+
+.history-dot {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.history-dot span {
+  width: 8px;
+  height: 8px;
+  border-radius: 10px;
+  background: #9ba6ad;
+}
+
+.history-dot[aria-current="page"] span {
+  width: 20px;
+  background: var(--navy);
+}
+
+.history-dot:hover span {
+  background: #b76527;
+}
+
+.history-dot:focus-visible {
+  outline: 2px solid #a45e1b;
+  outline-offset: -3px;
+}
